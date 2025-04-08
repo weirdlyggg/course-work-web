@@ -37,7 +37,7 @@ class Favorite(models.Model):
     
 class ProductImg(models.Model):
     product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
-    imgurl = models.URLField()
+    img = models.ImageField(upload_to='product_images/', null=True, blank=True)
 
     def __str__(self):
         return f"Image for {self.product.name}"
@@ -72,20 +72,20 @@ class Review(models.Model):
     
 class ReviewImg(models.Model):
     review = models.ForeignKey(Review, related_name='images', on_delete=models.CASCADE)
-    imgurl = models.URLField()
+    img = models.ImageField(upload_to='review_images/', null=True, blank=True)
 
     def __str__(self):
         return f"Image for review {self.review.id}"
     
-class Gamestone(models.Model):
+class Gemestone(models.Model):
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
   
-class ProductGamestone(models.Model):
-    product = models.ForeignKey(Product, related_name='gamestones', on_delete=models.CASCADE)
-    gamestone = models.ForeignKey(Gamestone, related_name='products', on_delete=models.CASCADE)
+class ProductGemestone(models.Model):
+    product = models.ForeignKey(Product, related_name='gemestones', on_delete=models.CASCADE)
+    gemestone = models.ForeignKey(Gemestone, related_name='products', on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.product.name} with {self.gemstone.name}"
+        return f"{self.product.name} with {self.gemestone.name}"
