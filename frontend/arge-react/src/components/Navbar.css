@@ -1,0 +1,18 @@
+.category {
+    display: flex;
+    flex-direction: row;
+    padding: 0 32px;
+    font-size: 15px;
+    background-color: #F8F9FA;
+    height: 56px;
+    max-width: 1920px;
+}
+
+.menu__link {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    color: #212529;
+    text-decoration: none;
+    padding: 0px 12px 0px 28.8px;
+}
