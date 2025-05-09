@@ -1,8 +1,76 @@
-from django.shortcuts import render
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.db.models import Avg
+from rest_framework.generics import ListAPIView
+from .models import User, Product
+from .serializers import UserSerializer, ProductSerializer
 
-from django.http import HttpResponse
-from django.template import loader
-from .models import User
+# Список пользователей
+@api_view(['GET'])
+def members(request):
+    users = User.objects.all()
+    serializer = UserSerializer(users, many=True)
+    return Response(serializer.data)
+
+# Товары по категории
+@api_view(['GET'])
+def products_by_category(request, category_id):
+    products = Product.objects.filter(category_id=category_id)
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+
+# Исключение дорогих товаров
+@api_view(['GET'])
+def affordable_products(request):
+    products = Product.objects.exclude(price__gt=10000)
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+
+# Сортировка товаров
+@api_view(['GET'])
+def sorted_products(request):
+    products = Product.objects.order_by('name')
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+
+# Детали товара
+@api_view(['GET'])
+def product_detail(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    serializer = ProductSerializer(product)
+    return Response(serializer.data)
+
+# Пагинация товаров
+from rest_framework.pagination import PageNumberPagination
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 5  
+
+class ProductListView(ListAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    pagination_class = StandardResultsSetPagination
+
+# Средняя цена товаров
+@api_view(['GET'])
+def average_price(request):
+    average_price = Product.objects.aggregate(Avg('price'))
+    return Response({'average_price': average_price['price__avg']})
+
+# Регистрация пользователя
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.contrib.auth.models import User
+from .serializers import RegisterSerializer
+
+@api_view(['POST'])
+def register(request):
+    serializer = RegisterSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'message': 'User registered successfully'})
+    return Response(serializer.errors, status=400)
 
 def members(request):
   myusers = User.objects.all().values() 
@@ -11,3 +79,16 @@ def members(request):
     'myusers' : myusers,
   }
   return HttpResponse(template.render(context, request))
+
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
+
+@api_view(['POST'])
+def login_user(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    user = authenticate(username=username, password=password)
+    if user:
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key})
+    return Response({'error': 'Invalid credentials'}, status=400)

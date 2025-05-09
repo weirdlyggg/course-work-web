@@ -8,7 +8,8 @@ const Navbar = () => {
             <Link className='menu__link' to="/Home">главная</Link>
             <Link className='menu__link' to="/">категории</Link>
             <Link className='menu__link' to="/About">о нас</Link>
-            
+            <Link className='menu__link' to="/login">вход</Link>
+            <Link className='menu__link' to="/register">регистрация</Link>
         </div>
     );
 };
