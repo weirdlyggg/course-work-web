@@ -1,13 +1,22 @@
 from django.urls import path
+from .views import ProductCreateAPIView, ProductUpdateAPIView, ProductDeleteAPIView, ProductDetailView
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from django.views.generic import TemplateView
+import debug_toolbar
+from django.urls import include
+
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/react-app/', permanent=False), name='root'),
     path('react-app/', TemplateView.as_view(template_name='index.html'), name='react_app'),
+    path('api/products/latest/', views.latest_products, name='latest_products'),
+    path('api/products/create/', ProductCreateAPIView.as_view(), name='product_create'),
+    path('api/products/<int:pk>/update/', ProductUpdateAPIView.as_view(), name='product_update'),
+    path('api/products/<int:pk>/delete/', ProductDeleteAPIView.as_view(), name='product_delete'),
+    path('api/products/<int:pk>/', ProductDetailView.as_view(), name='product_detail_view'),
     # Список пользователей
     path('api/members/', views.members, name='members'),
 
@@ -38,3 +47,6 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG:
+    urlpatterns += [path('__debug__/', include(debug_toolbar.urls))]

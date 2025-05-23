@@ -18,6 +18,8 @@
     max-width: 1920px;
 }
 
+
+
 .slider::-webkit-scrollbar {
     display: none; /* Убирает полосу прокрутки для Webkit */
 }

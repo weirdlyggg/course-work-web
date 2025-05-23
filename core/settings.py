@@ -21,7 +21,10 @@ INSTALLED_APPS = [
     'members',
     'rest_framework',
     'corsheaders',
+    'debug_toolbar',
 ]
+
+
 
 # Настройки DRF
 REST_FRAMEWORK = {
@@ -39,6 +42,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
+
+INTERNAL_IPS = ['127.0.0.1']
 
 ROOT_URLCONF = 'core.urls'
 
@@ -86,7 +93,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
 TIME_ZONE = 'UTC'
 

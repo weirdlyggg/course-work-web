@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { fetchProducts } from '../api';
+import { fetchLatestProducts } from '../api';
 import './Home.css';
 import Slider from '../components/Slider.js';
+
 
 const Home = () => {
     const [products, setProducts] = useState([]);
   
     useEffect(() => {
-      fetchProducts()
+      fetchLatestProducts()
         .then(response => {
-          setProducts(response.data.results); // Если используется пагинация
-        })
+          setProducts(response.data); 
+         })
         .catch(error => {
-          console.error('Error fetching products:', error);
+          console.error('Ошибка при получении новинок:', error);
         });
     }, []);
   

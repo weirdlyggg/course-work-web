@@ -14,6 +14,13 @@ class User(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
     
+    @classmethod
+    def create_user(cls, email, password, **extra_fields):
+        user = cls(email=email, **extra_fields)
+        user.set_password(password)  # Хеширует пароль
+        user.save()
+        return user
+    
 class Category(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()

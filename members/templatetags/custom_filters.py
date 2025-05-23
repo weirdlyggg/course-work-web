@@ -20,7 +20,7 @@ def greet_user(context):
     user = context['request'].user
     return f"Hello, {user.username}!" if user.is_authenticated else "Hello, Guest!"
 
-@register.inclusion_tag('tags/product_list.html')
+@register.inclusion_tag('product_list.html')
 def show_products():
     products = Product.objects.all()[:5]  # Первые 5 товаров
     return {'products': products}

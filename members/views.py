@@ -3,8 +3,9 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 from rest_framework.generics import ListAPIView
-from .models import User, Product
-from .serializers import UserSerializer, ProductSerializer
+from .models import User, Product, Category, Review, Order
+from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer
+from rest_framework import generics
 
 # Список пользователей
 @api_view(['GET'])
@@ -92,3 +93,32 @@ def login_user(request):
         token, _ = Token.objects.get_or_create(user=user)
         return Response({'token': token.key})
     return Response({'error': 'Invalid credentials'}, status=400)
+
+class ProductCreateAPIView(generics.CreateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+class ProductUpdateAPIView(generics.UpdateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+class ProductDeleteAPIView(generics.DestroyAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+# Пример select_related
+class ProductDetailView(generics.RetrieveAPIView):
+    queryset = Product.objects.select_related('category').prefetch_related('images', 'favorites')
+    serializer_class = ProductSerializer
+
+@api_view(['GET'])
+def latest_products(request):
+    products = Product.objects.order_by('-id')[:5]  # или по created_at, если добавишь поле
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def latest_products(request):
+    products = Product.objects.prefetch_related('images').order_by('-id')[:5]
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)

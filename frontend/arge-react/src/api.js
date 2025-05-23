@@ -8,7 +8,9 @@ const api = axios.create({
 });
 
 // Получить список товаров
-export const fetchProducts = () => api.get('/api/products/list/');
+export const fetchLatestProducts = () => {
+  return axios.get('/api/products/latest/');
+};
 
 // Получить детали товара
 export const fetchProductDetail = (productId) => api.get(`/api/product/${productId}/`);
