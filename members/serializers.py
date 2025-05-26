@@ -6,7 +6,7 @@ from .models import Product, Category, Review, Order, ProductImg
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_admin']
 
 # Сериализатор для регистрации пользователя
 class RegisterSerializer(serializers.ModelSerializer):

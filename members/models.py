@@ -10,16 +10,25 @@ class User(models.Model):
     password = models.CharField(max_length=255)
     address = models.TextField()
     date_joined = models.DateTimeField(default=timezone.now)
+    is_admin = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
     
     @classmethod
-    def create_user(cls, email, password, **extra_fields):
-        user = cls(email=email, **extra_fields)
-        user.set_password(password)  # Хеширует пароль
+    def create_user(cls, email, password, first_name='', last_name=''):
+        user = cls(
+            email=email,
+            first_name=first_name,
+            last_name=last_name
+        )
+        user.set_password(password)  # ❗ Важно: хешируйте пароль
         user.save()
         return user
+
+    def set_password(self, raw_password):
+        from django.contrib.auth.hashers import make_password
+        self.password = make_password(raw_password)
     
 class Category(models.Model):
     name = models.CharField(max_length=255)

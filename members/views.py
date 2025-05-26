@@ -65,12 +65,16 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from .serializers import RegisterSerializer
 
+from django.contrib.auth import login as auth_login
+
 @api_view(['POST'])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
-        return Response({'message': 'User registered successfully'})
+        user = serializer.save()
+        # Опционально: авто-вход после регистрации
+        request.session['user_id'] = user.id
+        return Response({'message': 'Пользователь зарегистрирован'})
     return Response(serializer.errors, status=400)
 
 def members(request):
@@ -122,3 +126,16 @@ def latest_products(request):
     products = Product.objects.prefetch_related('images').order_by('-id')[:5]
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def current_user(request):
+    user_id = request.session.get('user_id')  # Или используйте другой способ хранения
+    if not user_id:
+        return Response({'error': 'Не авторизован'}, status=401)
+    
+    try:
+        user = User.objects.get(id=user_id)
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+    except User.DoesNotExist:
+        return Response({'error': 'Пользователь не найден'}, status=404)

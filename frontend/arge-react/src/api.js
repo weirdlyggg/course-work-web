@@ -23,3 +23,5 @@ export const registerUser = (userData) => api.post('/api/register/', userData);
 
 // Вход пользователя
 export const login = (credentials) => api.post('/api/login/', credentials);
+// Получить текущего пользователя
+export const fetchCurrentUser = () => api.get('/api/members/me/');

@@ -11,6 +11,7 @@ from django.urls import include
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/react-app/', permanent=False), name='root'),
+    path('api/members/me/', views.current_user, name='current_user'),
     path('react-app/', TemplateView.as_view(template_name='index.html'), name='react_app'),
     path('api/products/latest/', views.latest_products, name='latest_products'),
     path('api/products/create/', ProductCreateAPIView.as_view(), name='product_create'),
