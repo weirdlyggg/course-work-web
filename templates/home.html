@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная — ARGE</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+<header>
+    <div class="top-bar">
+        <div class="logo">ARGE</div>
+        <nav>
+            <a href="#">каталог</a>
+            <a href="#">коллекции</a>
+            <a href="#">о нас</a>
+        </nav>
+        <div class="actions">
+            <a href="#">корзина</a>
+            <a href="#">личный кабинет</a>
+        </div>
+    </div>
+</header>
+
+<main class="content">
+
+    <section class="collection">
+        <h2>classic collection</h2>
+        <div class="grid">
+            {% for product in featured_products %}
+                <div class="product-card">
+                    {% if product.images.all %}
+                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                    {% endif %}
+                    <div>{{ product.name }}</div>
+                    <div>{{ product.price }} ₽</div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="recommend">
+        <h2>бестселлеры</h2>
+        <div class="grid">
+            {% for product in recommended_products %}
+                <div class="product-card">
+                    {% if product.images.all %}
+                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                    {% endif %}
+                    <div>{{ product.name }}</div>
+                    <div>{{ product.price }} ₽</div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <!-- здесь можно сделать футер позже -->
+</footer>
+</body>
+</html>

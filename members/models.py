@@ -1,34 +1,56 @@
 from django.db import models
 from django.utils import timezone
 from django.urls import reverse
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import PermissionsMixin
+from django.core.exceptions import ValidationError
 
-class User(models.Model):
-    email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
-    phone_number = models.CharField(max_length=11)
-    password = models.CharField(max_length=255)
-    address = models.TextField()
-    date_joined = models.DateTimeField(default=timezone.now)
-    is_admin = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-    
-    @classmethod
-    def create_user(cls, email, password, first_name='', last_name=''):
-        user = cls(
-            email=email,
-            first_name=first_name,
-            last_name=last_name
-        )
-        user.set_password(password)  # ❗ Важно: хешируйте пароль
-        user.save()
+class UserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Email должен быть указан')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
         return user
 
-    def set_password(self, raw_password):
-        from django.contrib.auth.hashers import make_password
-        self.password = make_password(raw_password)
+    def create_superuser(self, email, password, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if not extra_fields['is_staff']:
+            raise ValueError('Superuser must have is_staff=True.')
+
+        if not extra_fields['is_superuser']:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(email, password, **extra_fields)
+    
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=255, blank=True)
+    last_name = models.CharField(max_length=255, blank=True)
+    phone_number = models.CharField(max_length=11, null=True, blank=True)
+    address = models.TextField(blank=True, null=True)
+    date_joined = models.DateTimeField(default=timezone.now)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    def __str__(self):
+        return self.email
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    def get_short_name(self):
+        return self.email
     
 class Category(models.Model):
     name = models.CharField(max_length=255)
@@ -47,6 +69,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
     status = models.CharField(max_length=50, default='available')
+    
 
     objects = models.Manager()
     available = AvailableProductsManager()
@@ -126,7 +149,11 @@ class Gemestone(models.Model):
   
 class ProductGemestone(models.Model):
     product = models.ForeignKey(Product, related_name='gemestones', on_delete=models.CASCADE)
-    gemestone = models.ForeignKey(Gemestone, related_name='products', on_delete=models.CASCADE)
+    gemestone = models.ForeignKey(Gemestone, related_name='products', on_delete=models.CASCADE, null=True, blank=True)
+
+    def clean(self):
+        if self.gemestone is None:
+            raise ValidationError("Выберите камень для украшения")
 
     def __str__(self):
         return f"{self.product.name} with {self.gemestone.name}"

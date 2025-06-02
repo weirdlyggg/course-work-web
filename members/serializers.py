@@ -1,14 +1,13 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from .models import User
 from .models import Product, Category, Review, Order, ProductImg
 
 # Сериализатор для модели User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_admin']
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_staff']
 
-# Сериализатор для регистрации пользователя
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -16,19 +15,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        user = User.create_user(
-            email=validated_data['email'],
-            password=validated_data['password'],
-            first_name=validated_data.get('first_name'),
-            last_name=validated_data.get('last_name')
-        )
-        return user
+        # Используем User.objects.create_user
+        return User.objects.create_user(**validated_data)
     
-# Сериализатор для модели Product
-class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'name', 'description', 'price', 'category']
+# # Сериализатор для модели Product
+# class ProductSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Product
+#         fields = ['id', 'name', 'description', 'price', 'category']
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:

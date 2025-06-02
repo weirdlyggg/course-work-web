@@ -3,23 +3,25 @@ from .models import User, Category, Product, Favorite, ProductImg, Order, OrderI
 
 class ProductInLine(admin.TabularInline):
     model = Product
-    extra = 1
+    extra = 0
 
 class ReviewInLine(admin.TabularInline):
     model = Review
-    extra = 1
+    extra = 0
 
 class OrderItemInLine(admin.TabularInline):
     model = OrderItem
-    extra = 1
+    extra = 0
 
 class ProductGemstoneInLine(admin.TabularInline):
     model = ProductGemestone
-    extra = 1
+    extra = 0
+    can_delete = True
 
 class ProductImageInLine(admin.TabularInline):
     model = ProductImg
-    extra = 1
+    extra = 0
+    can_delete = True
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
