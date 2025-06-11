@@ -3,22 +3,54 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404, render
 from django.db.models import Avg
 from rest_framework.generics import ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, RetrieveAPIView
-from .models import User, Product, Category, Review, Order
+from .models import User, Product, Category, Review, Order, Gemestone
 from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 import random
+from django.db.models import Count
 
 
 def home(request):
-    featured_products = Product.objects.filter(is_featured=True)[:6]
-    recommended_products = Product.objects.order_by('?')[:12]
+    # Рекомендуемые товары — случайные с изображениями
+    recommended_products = Product.objects.filter(images__isnull=False).order_by('?')[:5]
+
+    # Популярные товары — случайные с изображениями
+    popular_products = Product.objects.filter(images__isnull=False).order_by('?')[:6]
 
     return render(request, 'home.html', {
-        'featured_products': featured_products,
-        'recommended_products': recommended_products
+        'recommended_products': recommended_products,
+        'popular_products': popular_products
     })
+
+def catalog(request):
+    # Получаем параметры фильтрации из GET запроса
+    category_id = request.GET.get('category')
+    gemestone_id = request.GET.get('gemestone')
+
+    # Формируем queryset
+    products = Product.objects.all()
+
+    if category_id:
+        products = products.filter(category_id=category_id)
+
+    if gemestone_id:
+        products = products.filter(gemestones__id=gemestone_id)
+
+    # Контекст для шаблона
+    categories = Category.objects.all()
+    gemestones = Gemestone.objects.all()
+
+    context = {
+        'products': products,
+        'categories': categories,
+        'gemestones': gemestones,
+        'selected_category': int(category_id) if category_id else None,
+        'selected_gemestone': int(gemestone_id) if gemestone_id else None,
+    }
+
+    return render(request, 'catalog.html', context)
 
 # --- API: Пользователи ---
 @api_view(['GET'])

@@ -20,16 +20,20 @@ body {
     padding: 2em;
 }
 .grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1em;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
 }
 .product-card {
-    background: white;
-    padding: 1em;
-    width: 200px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    text-align: center;
 }
 .product-card img {
     width: 100%;
     height: auto;
+    object-fit: cover;
+    border-radius: 6px;
 }

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Каталог товаров — ARGE{% endblock %}
+
+{% block content %}
+    <section class="collection">
+        <h2>Каталог товаров</h2>
+
+        <div class="row">
+            <!-- Фильтры -->
+            <div class="col-md-3">
+                <h4>Фильтры</h4>
+                <form method="get">
+                    <div class="mb-3">
+                        <h6>Категория</h6>
+                        {% for category in categories %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="category" value="{{ category.id }}"
+                                    {% if selected_category == category.id %}checked{% endif %}>
+                                <label class="form-check-label">{{ category.name }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Камень</h6>
+                        {% for gemestone in gemestones %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="gemestone" value="{{ gemestone.id }}"
+                                    {% if selected_gemestone == gemestone.id %}checked{% endif %}>
+                                <label class="form-check-label">{{ gemestone.name }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Применить фильтр</button>
+                </form>
+            </div>
+
+            <!-- Товары -->
+            <div class="col-md-9">
+                <div class="grid">
+                    {% for product in products %}
+                        <div class="product-card">
+                            {% if product.images.all %}
+                                <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                            {% else %}
+                                <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
+                            {% endif %}
+                            <div>{{ product.name }}</div>
+                            <div>{{ product.price }} ₽</div>
+                        </div>
+                    {% empty %}
+                        <p>Товаров не найдено.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

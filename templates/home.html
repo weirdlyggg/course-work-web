@@ -1,63 +1,77 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Главная — ARGE</title>
-    <link rel="stylesheet" href="{% static 'styles.css' %}">
-</head>
-<body>
-<header>
-    <div class="top-bar">
-        <div class="logo">ARGE</div>
-        <nav>
-            <a href="#">каталог</a>
-            <a href="#">коллекции</a>
-            <a href="#">о нас</a>
-        </nav>
-        <div class="actions">
-            <a href="#">корзина</a>
-            <a href="#">личный кабинет</a>
-        </div>
+
+{% block title %}Главная — ARGE{% endblock %}
+
+{% block content %}
+
+<!-- Слайдер -->
+<div id="mainCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
+    <div class="carousel-inner">
+
+        {% for product in recommended_products %}
+            <div class="carousel-item{% if forloop.first %} active{% endif %}">
+                {% if product.images.all %}
+                    <img src="{{ product.images.all.0.img.url }}" class="d-block w-100" alt="{{ product.name }}">
+                {% else %}
+                    <img src="https://placehold.co/600x400"  class="d-block w-100" alt="Нет изображения">
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="carousel-item active">
+                <img src="https://placehold.co/600x400"  class="d-block w-100" alt="Нет товаров">
+            </div>
+        {% endfor %}
+
     </div>
-</header>
 
-<main class="content">
+    <!-- Кнопки навигации - ->
+    <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Предыдущий</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Следующий</span>
+    </button>
+</div>
 
-    <section class="collection">
-        <h2>classic collection</h2>
-        <div class="grid">
-            {% for product in featured_products %}
-                <div class="product-card">
-                    {% if product.images.all %}
-                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
-                    {% endif %}
-                    <div>{{ product.name }}</div>
-                    <div>{{ product.price }} ₽</div>
-                </div>
-            {% endfor %}
-        </div>
-    </section>
+<!-- Популярные товары -->
+<section class="popular-products">
+    <h2 class="mb-4">Популярные товары</h2>
+    <div class="grid">
+        {% for product in popular_products %}
+            <div class="product-card">
+                {% if product.images.all %}
+                    <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                {% else %}
+                    <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
+                {% endif %}
+                <div>{{ product.name }}</div>
+                <div>{{ product.price }} ₽</div>
+            </div>
+        {% empty %}
+            <p>Нет популярных товаров.</p>
+        {% endfor %}
+    </div>
+</section>
 
-    <section class="recommend">
-        <h2>бестселлеры</h2>
-        <div class="grid">
-            {% for product in recommended_products %}
-                <div class="product-card">
-                    {% if product.images.all %}
-                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
-                    {% endif %}
-                    <div>{{ product.name }}</div>
-                    <div>{{ product.price }} ₽</div>
-                </div>
-            {% endfor %}
-        </div>
-    </section>
+<!-- Бестселлеры -->
+<section class="recommend">
+    <h2 class="my-4">Бестселлеры</h2>
+    <div class="grid">
+        {% for product in recommended_products %}
+            <div class="product-card">
+                {% if product.images.all %}
+                    <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                {% endif %}
+                <div>{{ product.name }}</div>
+                <div>{{ product.price }} ₽</div>
+            </div>
+        {% empty %}
+            <p>Нет бестселлеров.</p>
+        {% endfor %}
+    </div>
+</section>
 
-</main>
-
-<footer>
-    <!-- здесь можно сделать футер позже -->
-</footer>
-</body>
-</html>
+{% endblock %}
