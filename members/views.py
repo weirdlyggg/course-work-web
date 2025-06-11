@@ -1,35 +1,47 @@
+# views.py
+
+# Импорты стандартных библиотек
+from django.views.generic import View
+from django.shortcuts import get_object_or_404, render
+from django.db.models import Count, Avg
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from django.db.models import Q
+
+# Импорты DRF
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404, render
-from django.db.models import Avg
-from rest_framework.generics import ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, RetrieveAPIView
-from .models import User, Product, Category, Review, Order, Gemestone
-from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.generics import (
+    ListAPIView,
+    CreateAPIView,
+    UpdateAPIView,
+    DestroyAPIView,
+    RetrieveAPIView,
+)
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
-import random
-from django.db.models import Count
+
+# Локальные импорты
+from .models import Product, Category, Review, Order, Gemestone, ProductImg
+from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer, RegisterSerializer
 
 
-def home(request):
-    # Рекомендуемые товары — случайные с изображениями
-    recommended_products = Product.objects.filter(images__isnull=False).order_by('?')[:5]
+# === HTML Views ===
 
-    # Популярные товары — случайные с изображениями
-    popular_products = Product.objects.filter(images__isnull=False).order_by('?')[:6]
+class ProductDetailView(View):
+    def get(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        recommended_products = Product.objects.exclude(pk=pk).order_by('?')[:5]
+        return render(request, 'product_detail.html', {
+            'product': product,
+            'recommended_products': recommended_products,
+        })
 
-    return render(request, 'home.html', {
-        'recommended_products': recommended_products,
-        'popular_products': popular_products
-    })
 
 def catalog(request):
-    # Получаем параметры фильтрации из GET запроса
     category_id = request.GET.get('category')
     gemestone_id = request.GET.get('gemestone')
 
-    # Формируем queryset
     products = Product.objects.all()
 
     if category_id:
@@ -38,7 +50,6 @@ def catalog(request):
     if gemestone_id:
         products = products.filter(gemestones__id=gemestone_id)
 
-    # Контекст для шаблона
     categories = Category.objects.all()
     gemestones = Gemestone.objects.all()
 
@@ -52,19 +63,37 @@ def catalog(request):
 
     return render(request, 'catalog.html', context)
 
-# --- API: Пользователи ---
+
+def home(request):
+    recommended_products = Product.objects.filter(images__isnull=False).order_by('?')[:5]
+    popular_products = Product.objects.filter(images__isnull=False).order_by('?')[:6]
+
+    return render(request, 'home.html', {
+        'recommended_products': recommended_products,
+        'popular_products': popular_products
+    })
+
+
+def members_page(request):
+    myusers = User.objects.all()
+    return render(request, 'first.html', {'myusers': myusers})
+
+
+# === API Views ===
+
 @api_view(['GET'])
 def api_members(request):
     users = User.objects.all()
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data)
 
-# --- API: Продукты по категориям, фильтрации и сортировке ---
+
 @api_view(['GET'])
 def products_by_category(request, category_id):
     products = Product.objects.filter(category_id=category_id)
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
+
 
 @api_view(['GET'])
 def affordable_products(request):
@@ -72,37 +101,45 @@ def affordable_products(request):
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
+
 @api_view(['GET'])
 def sorted_products(request):
     products = Product.objects.order_by('name')
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
-# --- API: Детали товара ---
+
 @api_view(['GET'])
-def product_detail(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    serializer = ProductSerializer(product)
+def latest_products(request):
+    products = Product.objects.prefetch_related('images').order_by('-id')[:5]
+    serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+def average_price(request):
+    average = Product.objects.aggregate(Avg('price'))
+    return Response({'average_price': average['price__avg']})
+
+
+# --- API: Подробно с prefetch/select_related ---
+class ProductDetailAPIView(RetrieveAPIView):
+    queryset = Product.objects.select_related('category').prefetch_related('images', 'favorites')
+    serializer_class = ProductSerializer
+
 
 # --- API: Пагинация товаров ---
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 5
+
 
 class ProductListView(ListAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     pagination_class = StandardResultsSetPagination
 
-# --- API: Средняя цена всех товаров ---
-@api_view(['GET'])
-def average_price(request):
-    average = Product.objects.aggregate(Avg('price'))
-    return Response({'average_price': average['price__avg']})
 
 # --- API: Регистрация пользователя ---
-from .serializers import RegisterSerializer
-
 @api_view(['POST'])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
@@ -110,6 +147,7 @@ def register(request):
         serializer.save()
         return Response({'message': 'Пользователь зарегистрирован'})
     return Response(serializer.errors, status=400)
+
 
 # --- API: Логин пользователя ---
 @api_view(['POST'])
@@ -122,30 +160,6 @@ def login_user(request):
         return Response({'token': token.key})
     return Response({'error': 'Неверные учетные данные'}, status=400)
 
-# --- API: CRUD товары ---
-class ProductCreateAPIView(CreateAPIView):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
-
-class ProductUpdateAPIView(UpdateAPIView):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
-
-class ProductDeleteAPIView(DestroyAPIView):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
-
-# --- API: Подробно с prefetch/select_related ---
-class ProductDetailView(RetrieveAPIView):
-    queryset = Product.objects.select_related('category').prefetch_related('images', 'favorites')
-    serializer_class = ProductSerializer
-
-# --- API: Новинки ---
-@api_view(['GET'])
-def latest_products(request):
-    products = Product.objects.prefetch_related('images').order_by('-id')[:5]
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
 
 # --- API: Текущий пользователь ---
 @api_view(['GET'])
@@ -155,12 +169,18 @@ def current_user(request):
         return Response(serializer.data)
     return Response({'error': 'Не авторизован'}, status=401)
 
-# --- HTML: Страница участников (для шаблона) ---
-def members_page(request):
-    myusers = User.objects.all()
-    return render(request, 'first.html', {'myusers': myusers})
 
-# --- HTML: Главная страница с новинками ---
-def home(request):
-    latest_products = Product.objects.prefetch_related('images').order_by('-id')[:5]
-    return render(request, 'home.html', {'latest_products': latest_products})
+# --- API: CRUD товары ---
+class ProductCreateAPIView(CreateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+
+class ProductUpdateAPIView(UpdateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+
+class ProductDeleteAPIView(DestroyAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer

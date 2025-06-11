@@ -6,26 +6,26 @@
 {% block content %}
 
 <!-- Слайдер -->
-<div id="mainCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
-    <div class="carousel-inner">
+<div id="mainCarousel" class="carousel slide mb-5 mx-auto"  data-bs-ride="carousel">
+        <div class="carousel-inner">
 
-        {% for product in recommended_products %}
-            <div class="carousel-item{% if forloop.first %} active{% endif %}">
-                {% if product.images.all %}
-                    <img src="{{ product.images.all.0.img.url }}" class="d-block w-100" alt="{{ product.name }}">
-                {% else %}
-                    <img src="https://placehold.co/600x400"  class="d-block w-100" alt="Нет изображения">
-                {% endif %}
-            </div>
-        {% empty %}
-            <div class="carousel-item active">
-                <img src="https://placehold.co/600x400"  class="d-block w-100" alt="Нет товаров">
-            </div>
-        {% endfor %}
+            {% for product in recommended_products %}
+                <div class="carousel-item{% if forloop.first %} active{% endif %}">
+                    {% if product.images.all %}
+                        <img src="{{ product.images.all.0.img.url }}" class="d-block w-100" alt="{{ product.name }}">
+                    {% else %}
+                        <img src="https://via.placeholder.com/900x400"  class="d-block w-100" alt="Нет изображения">
+                    {% endif %}
+                </div>
+            {% empty %}
+                <div class="carousel-item active">
+                    <img src="https://via.placeholder.com/900x400"  class="d-block w-100" alt="Нет товаров">
+                </div>
+            {% endfor %}
 
-    </div>
+        </div>
 
-    <!-- Кнопки навигации - ->
+    <!-- Кнопки навигации -->
     <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
         <span class="visually-hidden">Предыдущий</span>

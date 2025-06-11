@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }} - ARGE{% endblock %}
+
+{% block content %}
+
+
+
+<div class="product-full-card">
+    <!-- Дополнительные изображения -->
+    <div class="additional-images">
+        {% for image in product.images.all %}
+            <img src="{{ image.img.url }}" alt="{{ product.name }}">
+        {% endfor %}
+    </div>
+
+    <div class="product-card-info">
+        <!-- Заголовок -->
+        <h1>{{ product.name }}</h1>
+        <p>{{ product.price }} ₽</p>
+
+        <!-- Информация о товаре -->
+        <div class="product-info">
+            <h2>Описание:</h2>
+            <p>{{ product.description }}</p>
+
+            <h2>Характеристики:</h2>
+            <ul>
+                <li>Материал: {{ product.material }}</li>
+                <li>Камень: {{ product.gemstone }}</li>
+                <li>Размер: {{ product.size }}</li>
+            </ul>
+
+            <!-- Кнопка "Добавить в корзину" -->
+            <button class="btn btn-primary">Добавить в корзину</button>
+        </div>
+    </div>
+</div>
+
+<!-- Рекомендуемые товары -->
+<section class="recommended-products">
+    <h2>Похожие товары</h2>
+    <div class="grid">
+        {% for recommended_product in recommended_products %}
+            <div class="product-card">
+                {% if recommended_product.images.all %}
+                    <img src="{{ recommended_product.images.all.0.img.url }}" alt="{{ recommended_product.name }}">
+                {% else %}
+                    <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
+                {% endif %}
+                <div>{{ recommended_product.name }}</div>
+                <div>{{ recommended_product.price }} ₽</div>
+            </div>
+        {% empty %}
+            <p>Нет рекомендаций.</p>
+        {% endfor %}
+    </div>
+</section>
+
+{% endblock %}
