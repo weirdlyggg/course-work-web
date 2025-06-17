@@ -6,22 +6,51 @@ from .models import Product, User  # Теперь User доступен
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
+        # Явно берем поля (можно было exclude=['status'] и т.п.)
         fields = ['name', 'description', 'price', 'category', 'status']
-        widgets = {
-            'description': forms.Textarea(attrs={'rows': 4}),
+        
+        labels = {
+            'name': 'Название товара',
+            'description': 'Описание',
+            'price': 'Цена (₽)',
+            'category': 'Категория',
+            'status': 'Статус',
         }
+        
+        help_texts = {
+            'name': 'Краткое, до 255 символов.',
+            'price': 'Число без пробелов.',
+        }
+        
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+        }
+        
+        error_messages = {
+            'name': {
+                'required': 'Название обязательно.',
+                'max_length': 'Слишком длинное название (не более 255 символов).',
+            },
+            'price': {
+                'invalid': 'Введите корректное число.',
+                'required': 'Цена обязательна.',
+            },
+        }
+        css = {
+            'all': (
+                'css/product_form.css',  # файл в static/css/
+            )
+        }
+        js = (
+            'js/product_form.js',    # файл в static/js/
+        )
 
     def clean_price(self):
-        price = self.cleaned_data['price']
-        if price <= 0:
+        price = self.cleaned_data.get('price')
+        if price is None or price <= 0:
             raise forms.ValidationError("Цена должна быть положительной.")
         return price
-
-    def save(self, commit=True):
-        product = super().save(commit=False)
-        if commit:
-            product.save()
-        return product
 
 
 # Форма редактирования профиля пользователя

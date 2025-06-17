@@ -6,7 +6,17 @@
 {% block content %}
     <section class="collection">
         <h2>Каталог товаров</h2>
-
+        <form method="get" class="form-inline mb-4">
+            <div class="input-group">
+                <input type="text" name="q" placeholder="Поиск по названию..." list="product_names" value="{{ search_query }}" class="form-control">
+            </div>
+            <datalist id="product_names">
+            {% for name in all_names %}
+                <option value="{{ name }}">
+            {% endfor %}
+            </datalist>
+            <button type="submit" class="btn btn-primary">Найти</button>
+        </form>
         <div class="row">
             <!-- Фильтры -->
             <div class="col-md-3">
@@ -63,3 +73,4 @@
         </div>
     </section>
 {% endblock %}
+

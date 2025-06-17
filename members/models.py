@@ -201,3 +201,24 @@ class ProductGemestone(models.Model):
     class Meta:
         verbose_name = "ТоварКамень"
         verbose_name_plural = "ТоварыКамни"
+
+class Document(models.Model):
+    title = models.CharField(max_length=255)
+    name = models.CharField("Название", max_length=255)
+    file = models.FileField("Файл", upload_to="docs/")
+
+    class Meta:
+        verbose_name = "Документ"
+        verbose_name_plural = "Документы"
+
+class Video(models.Model):
+    title = models.CharField(max_length=255, verbose_name="Название видео")
+    url = models.URLField(verbose_name="Ссылка на видео")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Добавлено")
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = "Видео"
+        verbose_name_plural = "Видео"

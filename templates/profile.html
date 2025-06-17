@@ -27,6 +27,7 @@
         <p><strong>Телефон:</strong> {{ user.phone_number }}</p>
         <p><strong>Адрес:</strong> {{ user.address }}</p>
 
+        <p><strong>Всего заказов:</strong> {{ orders_count }}</p>
         <h3>Ваши заказы</h3>
         {% if user.orders.all %}
             <ul>

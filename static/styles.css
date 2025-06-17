@@ -93,5 +93,10 @@ body {
 .lk-info {
     display: flex;
     flex-direction: column;
-    margin-left: 30px !important;
+    margin-left: 30px ;
+}
+.input-group .form-control {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 10px;
 }

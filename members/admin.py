@@ -1,5 +1,31 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from xhtml2pdf import pisa
 from .models import User, Category, Product, Favorite, ProductImg, Order, OrderItem, Review, ReviewImg, Gemestone, ProductGemestone
+from .models import Document, Video
+
+@admin.action(description="Отметить выбранные заказы как отправленные")
+def mark_as_shipped(modeladmin, request, queryset):
+    updated = queryset.update(status='shipped')  # массовый UPDATE
+    messages.success(request, f"{updated} заказ(ов) отмечены как Shipped.")
+
+@admin.action(description="Удалить отмененные заказы")
+def delete_cancelled(modeladmin, request, queryset):
+    # удаляем только те, у которых status='cancelled'
+    to_delete = queryset.filter(status='cancelled')
+    count = to_delete.count()
+    to_delete.delete()  # массовый DELETE
+    messages.success(request, f"{count} отмененных заказ(ов) удалены.")
+
+@admin.register(Video)
+class VideoAdmin(admin.ModelAdmin):
+    list_display = ('title', 'url', 'created_at')
+    search_fields = ('title',)
+
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):  
+    list_display = ('title', 'file')
 
 class ProductInLine(admin.TabularInline):
     model = Product
@@ -50,11 +76,21 @@ class ProductImgAdmin(admin.ModelAdmin):
     list_display = ('product', 'img',)
     search_fields = ('product__name',)
 
+@admin.action(description="Скачать заказ в PDF")
+def export_order_to_pdf(modeladmin, request, queryset):
+    for order in queryset:
+        html = render_to_string("pdf/order.html", {"order": order})
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="order_{order.id}.pdf"'
+        pisa.CreatePDF(html, dest=response)
+        return response
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('user', 'total_price', 'status', 'created_at',)
     search_fields = ('user__email',)
     list_filter = ('user',)
+    actions = [export_order_to_pdf, mark_as_shipped, delete_cancelled]
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
@@ -79,3 +115,4 @@ class GemestoneAdmin(admin.ModelAdmin):
 @admin.register(ProductGemestone)
 class ProductGemestoneAdmin(admin.ModelAdmin):
     list_display = ('product', 'gemestone')
+

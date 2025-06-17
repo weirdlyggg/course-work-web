@@ -8,6 +8,8 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 # Импорты DRF
 from rest_framework.pagination import PageNumberPagination
@@ -39,18 +41,21 @@ class ProductDetailView(View):
         })
 
 
+
 def catalog(request):
     category_id = request.GET.get('category')
     gemestone_id = request.GET.get('gemestone')
+    q = request.GET.get('q')  # поисковый запрос
 
     products = Product.objects.all()
-
     if category_id:
         products = products.filter(category_id=category_id)
-
     if gemestone_id:
         products = products.filter(gemestones__id=gemestone_id)
-
+    if q:
+        products = products.filter(name__icontains=q)
+    # для автодополнения: список всех имён товаров
+    all_names = Product.objects.values_list('name', flat=True).distinct()
     categories = Category.objects.all()
     gemestones = Gemestone.objects.all()
 
@@ -60,6 +65,8 @@ def catalog(request):
         'gemestones': gemestones,
         'selected_category': int(category_id) if category_id else None,
         'selected_gemestone': int(gemestone_id) if gemestone_id else None,
+        'search_query': q or '',
+        'all_names': all_names,
     }
 
     return render(request, 'catalog.html', context)
@@ -193,12 +200,17 @@ def profile_view(request):
         form = UserProfileForm(instance=user)
     
     orders = user.orders.all()
+    orders_count = orders.count()    # сколько всего заказов
+    has_orders = orders.exists()     # есть ли хотя бы один заказ?
+
     products = Product.objects.all() if user.is_staff else None
 
     return render(request, 'profile.html', {
         'user': user,
         'user_form': form,
         'orders': orders,
+        'orders_count': orders_count,
+        'has_orders': has_orders,
         'products': products,
     })
 
@@ -245,7 +257,6 @@ def checkout_view(request):
 
     return redirect('profile')
 
-from django.shortcuts import render
 from .models import Product
 
 def cart_view(request):
@@ -286,10 +297,10 @@ from .forms import ProductForm
 @user_passes_test(lambda u: u.is_staff)
 def create_product_view(request):
     if request.method == 'POST':
-        form = ProductForm(request.POST)
+        form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            return redirect('profile')
+            return HttpResponseRedirect(reverse('profile'))
     else:
         form = ProductForm()
     
