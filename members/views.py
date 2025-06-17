@@ -2,11 +2,12 @@
 
 # Импорты стандартных библиотек
 from django.views.generic import View
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Count, Avg
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.contrib.auth.decorators import login_required
 
 # Импорты DRF
 from rest_framework.pagination import PageNumberPagination
@@ -139,15 +140,6 @@ class ProductListView(ListAPIView):
     pagination_class = StandardResultsSetPagination
 
 
-# --- API: Регистрация пользователя ---
-@api_view(['POST'])
-def register(request):
-    serializer = RegisterSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({'message': 'Пользователь зарегистрирован'})
-    return Response(serializer.errors, status=400)
-
 
 # --- API: Логин пользователя ---
 @api_view(['POST'])
@@ -184,3 +176,137 @@ class ProductUpdateAPIView(UpdateAPIView):
 class ProductDeleteAPIView(DestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+
+from .forms import UserProfileForm
+from .models import User
+
+@login_required
+def profile_view(request):
+    user = request.user
+    
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=user)
+    
+    orders = user.orders.all()
+    products = Product.objects.all() if user.is_staff else None
+
+    return render(request, 'profile.html', {
+        'user': user,
+        'user_form': form,
+        'orders': orders,
+        'products': products,
+    })
+
+
+def add_to_cart(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    
+    # Получаем или создаём корзину в сессии
+    cart = request.session.get('cart', [])
+    
+    # Добавляем товар в корзину (можно сделать проверку на дубли)
+    if product_id not in cart:
+        cart.append(product_id)
+    
+    request.session['cart'] = cart  # Сохраняем обновлённую корзину
+    return redirect('product_detail', pk=product_id)
+
+def checkout_view(request):
+    cart_product_ids = request.session.get('cart', [])
+    if not cart_product_ids:
+        return redirect('cart')  # Если корзина пуста, редиректим обратно
+
+    user = request.user
+    products = Product.objects.filter(id__in=cart_product_ids)
+
+    # Создаём заказ
+    order = Order.objects.create(
+        user=user,
+        total_price=sum(p.price for p in products),
+        status='pending'
+    )
+
+    # Создаём элементы заказа
+    for product in products:
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            quantity=1,
+            prise_at_time_of_purchase=product.price
+        )
+
+    # Очищаем корзину после оформления
+    request.session['cart'] = []
+
+    return redirect('profile')
+
+from django.shortcuts import render
+from .models import Product
+
+def cart_view(request):
+    # Получаем список ID товаров из сессии
+    cart_product_ids = request.session.get('cart', [])
+    
+    # Получаем сами товары из базы данных
+    products = Product.objects.filter(id__in=cart_product_ids)
+
+    return render(request, 'cart.html', {
+        'products': products
+    })
+
+from django.views.generic import UpdateView, DeleteView
+from django.contrib.auth.mixins import UserPassesTestMixin
+from .forms import ProductForm
+
+class AdminProductEditView(UserPassesTestMixin, UpdateView):
+    model = Product
+    form_class = ProductForm
+    template_name = 'product_form.html'
+    success_url = '/profile/'
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+class AdminProductDeleteView(UserPassesTestMixin, DeleteView):
+    model = Product
+    template_name = 'product_confirm_delete.html'
+    success_url = '/profile/'
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+from django.contrib.auth.decorators import user_passes_test
+from .forms import ProductForm
+
+@user_passes_test(lambda u: u.is_staff)
+def create_product_view(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = ProductForm()
+    
+    return render(request, 'product_form.html', {'form': form})
+
+from .forms import CustomUserRegistrationForm
+from django.contrib.auth import login
+
+def register_view(request):
+    if request.method == 'POST':
+        form = CustomUserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])  # хешируем
+            user.save()
+            login(request, user)  # логиним сразу
+            return redirect('profile')
+    else:
+        form = CustomUserRegistrationForm()
+    return render(request, 'register.html', {'form': form})

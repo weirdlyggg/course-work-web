@@ -52,12 +52,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         return self.email
     
+    class Meta:
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
+    
 class Category(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
 
 class AvailableProductsManager(models.Manager):
     def get_queryset(self):
@@ -83,6 +91,10 @@ class Product(models.Model):
     def get_absolute_url(self):
         return reverse('product-detail', args=[str(self.id)])
     
+    class Meta:
+        verbose_name = "Товар"
+        verbose_name_plural = "Товары"
+    
 class Favorite(models.Model):
     user = models.ForeignKey(User, related_name='favorites', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name='favorites', on_delete=models.CASCADE)
@@ -90,12 +102,20 @@ class Favorite(models.Model):
     def __str__(self):
         return f"{self.user} favorited by {self.product}"
     
+    class Meta:
+        verbose_name = "Избранное"
+        verbose_name_plural = "Избранные"
+    
 class ProductImg(models.Model):
     product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
     img = models.ImageField(upload_to='product_images/', null=True, blank=True)
 
     def __str__(self):
         return f"Image for {self.product.name}"
+    
+    class Meta:
+        verbose_name = "Фото товара"
+        verbose_name_plural = "Фото товаров"
     
 class Order(models.Model):
     STATUS_CHOICES = [
@@ -113,6 +133,10 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.id} by {self.user.first_name} {self.user.last_name}"
     
+    class Meta:
+        verbose_name = "Заказ"
+        verbose_name_plural = "Заказы"
+    
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name='order_items', on_delete=models.CASCADE)
@@ -121,6 +145,10 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product.name} {self.quantity}"
+    
+    class Meta:
+        verbose_name = "Товар в заказе"
+        verbose_name_plural = "Товары в заказе"
     
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -133,6 +161,10 @@ class Review(models.Model):
         return f"Review for {self.product.name} by {self.user.first_name} {self.user.last_name}"
     class Meta:
         ordering = ['-created_at']
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
     
 class ReviewImg(models.Model):
     review = models.ForeignKey(Review, related_name='images', on_delete=models.CASCADE)
@@ -141,11 +173,19 @@ class ReviewImg(models.Model):
     def __str__(self):
         return f"Image for review {self.review.id}"
     
+    class Meta:
+        verbose_name = "Фото отзыва"
+        verbose_name_plural = "Фото отзывов"
+
 class Gemestone(models.Model):
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = "Камень"
+        verbose_name_plural = "Камни"
   
 class ProductGemestone(models.Model):
     product = models.ForeignKey(Product, related_name='gemestones', on_delete=models.CASCADE)
@@ -157,3 +197,7 @@ class ProductGemestone(models.Model):
 
     def __str__(self):
         return f"{self.product.name} with {self.gemestone.name}"
+    
+    class Meta:
+        verbose_name = "ТоварКамень"
+        verbose_name_plural = "ТоварыКамни"

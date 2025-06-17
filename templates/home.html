@@ -43,12 +43,16 @@
         {% for product in popular_products %}
             <div class="product-card">
                 {% if product.images.all %}
-                    <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                    <a href="{% url 'product_detail' product.id %}">
+                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                    </a>
+                    <div>{{ product.name }}</div>
+                    <div>{{ product.price }} ₽</div>
                 {% else %}
                     <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
+                    <div>Товар без изображения</div>
+                    <div>Цена не указана</div>
                 {% endif %}
-                <div>{{ product.name }}</div>
-                <div>{{ product.price }} ₽</div>
             </div>
         {% empty %}
             <p>Нет популярных товаров.</p>
@@ -63,10 +67,16 @@
         {% for product in recommended_products %}
             <div class="product-card">
                 {% if product.images.all %}
-                    <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                    <a href="{% url 'product_detail' product.id %}">
+                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                    </a>
+                    <div>{{ product.name }}</div>
+                    <div>{{ product.price }} ₽</div>
+                {% else %}
+                    <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
+                    <div>Товар без изображения</div>
+                    <div>Цена не указана</div>
                 {% endif %}
-                <div>{{ product.name }}</div>
-                <div>{{ product.price }} ₽</div>
             </div>
         {% empty %}
             <p>Нет бестселлеров.</p>

@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
@@ -25,6 +26,11 @@ urlpatterns = [
     path('', members_views.home, name='home'),
     path('', include('members.urls')),
     path('admin/', admin.site.urls),
+    # Маршрут для входа через HTML-форму
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    
+    # Маршрут для выхода
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

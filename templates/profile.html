@@ -1,0 +1,79 @@
+<!-- templates/profile.html -->
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Личный кабинет — ARGE{% endblock %}
+
+{% block content %}
+<h2>Личный кабинет</h2>
+
+<form method="post" action="{% url 'logout' %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger mb-3">Выйти</button>
+</form>
+
+<div class="lk-main">
+    <div class="lk-form">
+        <form method="post">
+            {% csrf_token %}
+            {{ user_form.as_p }}
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+        </form>
+    </div>
+
+    <div class="lk-info">
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Имя:</strong> {{ user.first_name }}</p>
+        <p><strong>Фамилия:</strong> {{ user.last_name }}</p>
+        <p><strong>Телефон:</strong> {{ user.phone_number }}</p>
+        <p><strong>Адрес:</strong> {{ user.address }}</p>
+
+        <h3>Ваши заказы</h3>
+        {% if user.orders.all %}
+            <ul>
+                {% for order in user.orders.all %}
+                    <li>Заказ №{{ order.id }} — {{ order.status }} ({{ order.total_price }} ₽)</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>У вас нет заказов.</p>
+        {% endif %}
+        
+
+
+    </div>
+</div>
+
+
+{% if user.is_staff %}
+    <div class="admin-panel mt-5">
+        <h3>Панель управления</h3>
+        <h4 class="mt-4">Все товары</h4>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Цена</th>
+                    <th>Категория</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.price }} ₽</td>
+                        <td>{{ product.category.name }}</td>
+                        <td>
+                            <a href="{% url 'product_update' product.id %}" class="btn btn-sm btn-warning">Редактировать</a>
+                            <a href="{% url 'product_delete' product.id %}" class="btn btn-sm btn-danger">Удалить</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="{% url 'product_create_form' %}" class="btn btn-success">Добавить товар</a>
+
+        <a href="/admin/" class="btn btn-primary">Перейти в админку</a>
+    </div>
+{% endif %}
+{% endblock %}

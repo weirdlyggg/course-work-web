@@ -120,3 +120,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+LOGIN_URL = 'login'  # Указываем URL для входа
+LOGIN_REDIRECT_URL = 'profile'  # Где направлять пользователя после входа
+LOGOUT_REDIRECT_URL = 'home'    # Где направлять пользователя после выхода

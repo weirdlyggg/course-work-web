@@ -1,5 +1,7 @@
+# members/forms.py
+
 from django import forms
-from .models import Product
+from .models import Product, User  # Теперь User доступен
 
 class ProductForm(forms.ModelForm):
     class Meta:
@@ -17,7 +19,23 @@ class ProductForm(forms.ModelForm):
 
     def save(self, commit=True):
         product = super().save(commit=False)
-        # Здесь можно добавить бизнес-логику
         if commit:
             product.save()
         return product
+
+
+# Форма редактирования профиля пользователя
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'phone_number', 'address']
+
+from django import forms
+from .models import User
+
+class CustomUserRegistrationForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput)
+
+    class Meta:
+        model = User
+        fields = ['email', 'password', 'first_name', 'last_name', 'phone_number', 'address']

@@ -1,0 +1,25 @@
+<!-- templates/cart.html -->
+
+{% extends "base.html" %}
+{% block title %}Корзина — ARGE{% endblock %}
+{% load static %}
+{% block content %}
+<h2>Корзина</h2>
+
+{% if products %}
+    <div class="grid">
+        {% for product in products %}
+            <div class="product-card">
+                {% if product.images.all %}
+                    <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
+                {% endif %}
+                <h4>{{ product.name }}</h4>
+                <p>{{ product.price }} ₽</p>
+            </div>
+        {% endfor %}
+    </div>
+    <a href="{% url 'checkout' %}" class="btn btn-primary">Оформить заказ</a>
+{% else %}
+    <p>Корзина пуста.</p>
+{% endif %}
+{% endblock %}
