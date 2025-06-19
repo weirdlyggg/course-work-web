@@ -68,3 +68,13 @@ class CustomUserRegistrationForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['email', 'password', 'first_name', 'last_name', 'phone_number', 'address']
+
+    def save(self, commit=True):
+        # 1) создаём объект, но ещё НЕ сохраняем в БД
+        user = super().save(commit=False)
+        # 2) хешируем пароль
+        user.set_password(self.cleaned_data['password'])
+        # 3) если commit=True, сохраняем; иначе вернём незаписанный объект
+        if commit:
+            user.save()
+        return user

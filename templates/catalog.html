@@ -69,6 +69,41 @@
                         <p>Товаров не найдено.</p>
                     {% endfor %}
                 </div>
+                {# --- Пагинация --- #}
+                {% if page_obj.has_other_pages %}
+                    <nav aria-label="Пагинация">
+                        <ul class="pagination justify-content-center mt-4">
+                            {# «Предыдущая» #}
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_gemestone %}&gemestone={{ selected_gemestone }}{% endif %}"> &laquo; Пред.</a>
+                                </li>
+                            {% else %}
+                            <li class="page-item disabled"><span class="page-link">&laquo; Пред.</span></li>
+                            {% endif %}
+                            {# Номера страниц вокруг текущей (±2) #}
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                                    {% if num == page_obj.number %}
+                                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}&q={{ search_query }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_gemestone %}&gemestone={{ selected_gemestone }}{% endif %}"> {{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            {# «Следующая» #}
+                            {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_gemestone %}&gemestone={{ selected_gemestone }}{% endif %}"> След. &raquo;</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">След. &raquo;</span></li>
+                                    {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
             </div>
         </div>
     </section>

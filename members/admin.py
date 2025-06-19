@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 from .models import User, Category, Product, Favorite, ProductImg, Order, OrderItem, Review, ReviewImg, Gemestone, ProductGemestone
-from .models import Document, Video
+from .models import Document, Video, SaleEvent
 
 @admin.action(description="Отметить выбранные заказы как отправленные")
 def mark_as_shipped(modeladmin, request, queryset):
@@ -61,10 +61,16 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'category',)
+    list_display = ('name', 'price', 'category', 'view_count',)
     search_fields = ('name',)
     list_filter = ('category',)
     inlines = [ProductGemstoneInLine, ProductImageInLine]
+
+@admin.register(SaleEvent)
+class SaleEventAdmin(admin.ModelAdmin):
+    list_display = ('category', 'discount', 'end_time')
+    list_filter  = ('category',)
+    ordering     = ('-end_time',)
 
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):

@@ -5,83 +5,127 @@
 
 {% block content %}
 
-<!-- Слайдер -->
-<div id="mainCarousel" class="carousel slide mb-5 mx-auto"  data-bs-ride="carousel">
-        <div class="carousel-inner">
+<!-- Слайдер последние новинки -->
 
-            {% for product in recommended_products %}
-                <div class="carousel-item{% if forloop.first %} active{% endif %}">
-                    {% if product.images.all %}
-                        <img src="{{ product.images.all.0.img.url }}" class="d-block w-100" alt="{{ product.name }}">
-                    {% else %}
-                        <img src="https://via.placeholder.com/900x400"  class="d-block w-100" alt="Нет изображения">
-                    {% endif %}
+<!-- <div id="mainCarousel" class="carousel slide mb-5 mx-auto custom-carousel" data-bs-ride="carousel">
+    <div class="carousel-inner">
+        {% for p in latest_products %}
+            <div class="carousel-item{% if forloop.first %} active{% endif %}">
+                {% if p.images.first %}
+                    <img src="{{ p.images.first.img.url }}" class="d-block w-100" alt="{{ p.name }}">
+                {% else %}
+                    <img src="https://via.placeholder.com/900x400" class="d-block w-100">
+                {% endif %}
+                <div class="slider-caption text-center p-3">
+                    <h5 class="mb-1">{{ p.name }}</h5>
+                    <p class="mb-2">{{ p.price }} ₽</p>
+                    <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-primary">Подробнее</a>
                 </div>
-            {% empty %}
-                <div class="carousel-item active">
-                    <img src="https://via.placeholder.com/900x400"  class="d-block w-100" alt="Нет товаров">
-                </div>
-            {% endfor %}
-
-        </div>
-
-    <!-- Кнопки навигации -->
+            </div>
+        {% endfor %}
+    </div>
     <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Предыдущий</span>
+        <span class="carousel-control-prev-icon"></span>
     </button>
     <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Следующий</span>
+        <span class="carousel-control-next-icon"></span>
     </button>
-</div>
+</div> -->
+
+<!-- Слайдер последние новинки -->
+ <div id="mainCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
+    <div class="carousel-inner">
+        {% for p in latest_products %}
+            <div class="carousel-item{% if forloop.first %} active{% endif %}">
+                {% if p.images.first %}
+                    <img src="{{ p.images.first.img.url }}" class="d-block w-100" alt="{{ p.name }}">
+                {% else %}
+                    <img src="https://via.placeholder.com/900x400" class="d-block w-100">
+                {% endif %}
+                <div class="carousel-caption bg-dark bg-opacity-50 p-2">
+                    <h5>{{ p.name }}</h5>
+                    <p>{{ p.price }} ₽</p>
+                    <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-light">Подробнее</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon"></span>
+    </button>
+ </div>
+
 
 <!-- Популярные товары -->
-<section class="popular-products">
-    <h2 class="mb-4">Популярные товары</h2>
-    <div class="grid">
-        {% for product in popular_products %}
-            <div class="product-card">
-                {% if product.images.all %}
-                    <a href="{% url 'product_detail' product.id %}">
-                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
-                    </a>
-                    <div>{{ product.name }}</div>
-                    <div>{{ product.price }} ₽</div>
-                {% else %}
-                    <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
-                    <div>Товар без изображения</div>
-                    <div>Цена не указана</div>
-                {% endif %}
+<section class="mb-5">
+    <h2>Популярные товары</h2>
+    <div class="row">
+        {% for p in popular_products %}
+            <div class="col-6 col-md-4 col-lg-2 mb-4">
+                <div class="card h-100">
+                    {% if p.images.first %}
+                        <img src="{{ p.images.first.img.url }}" class="card-img-top" alt="{{ p.name }}">
+                    {% endif %}
+                    <div class="card-body p-2">
+                        <h6 class="card-title">{{ p.name }}</h6>
+                        <p class="card-text"><small>{{ p.view_count }} просмотров</small></p>
+                        <p class="card-text">{{ p.price }} ₽</p>
+                        <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-primary">Купить</a>
+                    </div>
+                </div>
             </div>
-        {% empty %}
-            <p>Нет популярных товаров.</p>
         {% endfor %}
     </div>
 </section>
 
-<!-- Бестселлеры -->
-<section class="recommend">
-    <h2 class="my-4">Бестселлеры</h2>
-    <div class="grid">
-        {% for product in recommended_products %}
-            <div class="product-card">
-                {% if product.images.all %}
-                    <a href="{% url 'product_detail' product.id %}">
-                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
-                    </a>
-                    <div>{{ product.name }}</div>
-                    <div>{{ product.price }} ₽</div>
-                {% else %}
-                    <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
-                    <div>Товар без изображения</div>
-                    <div>Цена не указана</div>
-                {% endif %}
-            </div>
-        {% empty %}
-            <p>Нет бестселлеров.</p>
-        {% endfor %}
-    </div>
-</section>
+<!-- 3) Виджет «Распродажа» -->
+{% if sale_event %}
+    <section class="mb-5">
+        <h2>Распродажа в категории «{{ sale_event.category.name }}»</h2>
+        <div id="sale-timer" data-end="{{ sale_event.end_time|date:"c" }}" class="fs-4 text-danger mb-3"></div>
+        <div class="row">
+            {% for item in sale_products %}
+                <div class="col-6 col-md-4 col-lg-2 mb-4">
+                    <div class="card h-100">
+                        {% if item.product.images.first %}
+                            <img src="{{ item.product.images.first.img.url }}" class="card-img-top">
+                        {% endif %}
+                        <div class="card-body p-2">
+                            <h6>{{ item.product.name }}</h6>
+                            <p>
+                                <del class="text-muted">{{ item.old_price }} ₽</del>
+                                <ins class="ms-1">{{ item.new_price }} ₽</ins>
+                            </p>
+                            <a href="{% url 'product_detail' item.product.id %}" class="btn btn-sm btn-danger">Купить со скидкой</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <script>
+        // JS-таймер обратного отсчёта
+        const timerEl = document.getElementById('sale-timer');
+        const endTime = new Date(timerEl.dataset.end);
+        function updateTimer() {
+            const diff = endTime - new Date();
+            if (diff <= 0) {
+                timerEl.textContent = 'Акция завершилась';
+                clearInterval(interval);
+                return;
+            }
+            const h = String(Math.floor(diff/1000/60/60)%24).padStart(2,'0');
+            const m = String(Math.floor(diff/1000/60)%60).padStart(2,'0');
+            const s = String(Math.floor(diff/1000)%60).padStart(2,'0');
+            timerEl.textContent = `${h}:${m}:${s}`;
+        }
+        const interval = setInterval(updateTimer, 1000);
+        updateTimer();
+    </script>
+{% endif %}
 
 {% endblock %}

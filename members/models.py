@@ -77,8 +77,9 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
     status = models.CharField(max_length=50, default='available')
+    view_count = models.PositiveIntegerField(default=0, verbose_name="Просмотров")
+    created_at = models.DateTimeField(default=timezone.now, verbose_name="Дата добавления")
     
-
     objects = models.Manager()
     available = AvailableProductsManager()
 
@@ -94,6 +95,18 @@ class Product(models.Model):
     class Meta:
         verbose_name = "Товар"
         verbose_name_plural = "Товары"
+
+class SaleEvent(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="Категория распродажи")
+    discount = models.PositiveIntegerField(verbose_name="Скидка, %")
+    end_time = models.DateTimeField(verbose_name="Конец акции")
+
+    def __str__(self):
+        return f"Распродажа: {self.category.name} –{self.discount}% до {self.end_time}"
+
+    class Meta:
+        verbose_name = "Событие распродажи"
+        verbose_name_plural = "События распродаж"
     
 class Favorite(models.Model):
     user = models.ForeignKey(User, related_name='favorites', on_delete=models.CASCADE)
@@ -210,6 +223,13 @@ class Document(models.Model):
     class Meta:
         verbose_name = "Документ"
         verbose_name_plural = "Документы"
+
+    def save(self, *args, **kwargs):
+        print(f"[Document.save] Сохраняем документ: {self.title}")
+        # вызываем родительский метод, чтобы файл и запись в БД сохранились
+        super().save(*args, **kwargs)
+        # логика после сохранения (опционально)
+        print(f"[Document.save] Документ {self.pk} сохранён.")
 
 class Video(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название видео")

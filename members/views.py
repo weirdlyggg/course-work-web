@@ -10,6 +10,10 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.db.models import F
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+
+
 
 # Импорты DRF
 from rest_framework.pagination import PageNumberPagination
@@ -25,7 +29,7 @@ from rest_framework.generics import (
 from rest_framework.authtoken.models import Token
 
 # Локальные импорты
-from .models import Product, Category, Review, Order, Gemestone, ProductImg
+from .models import Product, Category, Review, Order, Gemestone, ProductImg, SaleEvent
 from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer, RegisterSerializer
 
 
@@ -34,6 +38,11 @@ from .serializers import UserSerializer, ProductSerializer, CategorySerializer, 
 class ProductDetailView(View):
     def get(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
+        # ——— увеличить счётчик просмотров ——
+        # увеличиваем счётчик просмотров через F-выражение
+        Product.objects.filter(pk=product.pk).update(view_count=F('view_count') + 1)
+        # подгружаем обновлённое значение обратно в объект
+        product.refresh_from_db(fields=['view_count'])
         recommended_products = Product.objects.exclude(pk=pk).order_by('?')[:5]
         return render(request, 'product_detail.html', {
             'product': product,
@@ -41,44 +50,79 @@ class ProductDetailView(View):
         })
 
 
-
 def catalog(request):
     category_id = request.GET.get('category')
     gemestone_id = request.GET.get('gemestone')
-    q = request.GET.get('q')  # поисковый запрос
+    q = request.GET.get('q')
 
-    products = Product.objects.all()
+    # 1) Собираем базовый queryset
+    products_qs = Product.objects.all()
+
+    # 2) Фильтруем
     if category_id:
-        products = products.filter(category_id=category_id)
+        products_qs = products_qs.filter(category_id=category_id)
     if gemestone_id:
-        products = products.filter(gemestones__id=gemestone_id)
+        products_qs = products_qs.filter(gemestones__id=gemestone_id)
     if q:
-        products = products.filter(name__icontains=q)
-    # для автодополнения: список всех имён товаров
-    all_names = Product.objects.values_list('name', flat=True).distinct()
-    categories = Category.objects.all()
-    gemestones = Gemestone.objects.all()
+        products_qs = products_qs.filter(name__icontains=q)
 
-    context = {
-        'products': products,
-        'categories': categories,
-        'gemestones': gemestones,
-        'selected_category': int(category_id) if category_id else None,
-        'selected_gemestone': int(gemestone_id) if gemestone_id else None,
-        'search_query': q or '',
-        'all_names': all_names,
-    }
+    # 3) Пагинация: 12 товаров на страницу
+    paginator = Paginator(products_qs, 12)
+    page_number = request.GET.get('page')
 
-    return render(request, 'catalog.html', context)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
 
+    # 4) Остальные данные для шаблона
+    all_names   = Product.objects.values_list('name', flat=True).distinct()
+    categories  = Category.objects.all()
+    gemestones  = Gemestone.objects.all()
+
+    return render(request, 'catalog.html', {
+        # В шаблоне мы теперь используем page_obj для пагинации
+        'products':       page_obj,  
+        'page_obj':       page_obj,
+        'paginator':      paginator,
+
+        'all_names':      all_names,
+        'categories':     categories,
+        'gemestones':     gemestones,
+        'search_query':   q or '',
+        'selected_category':  category_id or '',
+        'selected_gemestone': gemestone_id or '',
+    })
+
+
+from django.utils import timezone
 
 def home(request):
-    recommended_products = Product.objects.filter(images__isnull=False).order_by('?')[:5]
-    popular_products = Product.objects.filter(images__isnull=False).order_by('?')[:6]
+    # 1) Последние — 5 самых свежих
+    latest_products = Product.objects.filter(status='available').order_by('-created_at')[:5]
+    # 2) Популярные — 6 по количеству просмотров
+    popular_products = Product.objects.filter(status='available').order_by('-view_count')[:6]
+    # 3) Распродажа — товары из категории события, со скидкой
+    now = timezone.now()
+    sale_event = SaleEvent.objects.filter(end_time__gt=now).first()
+    sale_products = []
+    if sale_event:
+        qs = Product.objects.filter(category=sale_event.category, status='available')
+        for p in qs:
+            discounted = p.price * (100 - sale_event.discount) / 100
+            sale_products.append({
+                'product': p,
+                'old_price': p.price,
+                'new_price': f"{discounted:.2f}"
+            })
 
     return render(request, 'home.html', {
-        'recommended_products': recommended_products,
-        'popular_products': popular_products
+        'latest_products': latest_products,
+        'popular_products': popular_products,
+        'sale_event': sale_event,
+        'sale_products': sale_products,
     })
 
 
