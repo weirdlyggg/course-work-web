@@ -77,3 +77,29 @@ class CustomUserRegistrationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+from .models import Review
+
+class OrderReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['rating', 'text']
+        widgets = {
+            'rating': forms.NumberInput(attrs={
+                'min': 1, 'max': 5,
+                'class': 'form-control',
+                'placeholder': '1–5'
+            }),
+            'text': forms.Textarea(attrs={
+                'rows': 3,
+                'class': 'form-control',
+                'placeholder': 'Ваш комментарий'
+            }),
+        }
+        labels = {
+            'rating': 'Оценка (1–5)',
+            'text': 'Комментарий',
+        }
+        help_texts = {
+            'rating': 'Введите число от 1 до 5',
+        }

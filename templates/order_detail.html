@@ -28,8 +28,32 @@
                     </td>
                     <td>{{ item.prise_at_time_of_purchase }} ₽</td>
                     <td>{{ item.quantity }}</td>
-                    <td>{{ item.prise_at_time_of_purchase }} ₽ × {{ item.quantity }} = 
-                        <strong>{{ item.line_total }} ₽</strong>
+                    <td>{{ item.line_total }} ₽</td>
+                    <td>
+                        {% if item.review %}
+                            <!-- Уже есть отзыв -->
+                            <div>
+                                <strong>Оценка:</strong> {{ item.review.rating }}<br>
+                                {{ item.review.text }}
+                            </div>
+                        {% elif order.status == 'delivered' %}
+                            {# Форма оставить отзыв #}
+                            <form method="post" class="mb-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                                <div class="mb-1">
+                                    {{ form.rating.label_tag }}<br>
+                                    {{ form.rating }}
+                                </div>
+                                <div class="mb-1">
+                                    {{ form.text.label_tag }}<br>
+                                    {{ form.text }}
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success">Оставить отзыв</button>
+                            </form>
+                        {% else %}
+                            <em>Отзыв доступен после доставки</em>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}

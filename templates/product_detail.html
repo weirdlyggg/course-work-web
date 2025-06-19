@@ -5,6 +5,9 @@
 
 {% block content %}
 
+<button type="button" class="btn btn-secondary mb-4" onclick="history.back();">
+  ← Назад
+</button>
 
 
 <div class="product-full-card">
@@ -34,22 +37,46 @@
     </div>
 </div>
 
-<!-- Рекомендуемые товары -->
-<section class="recommended-products">
-    <h2>Похожие товары</h2>
-    <div class="grid">
-        {% for recommended_product in recommended_products %}
-            <div class="product-card">
-                {% if recommended_product.images.all %}
-                    <img src="{{ recommended_product.images.all.0.img.url }}" alt="{{ recommended_product.name }}">
-                {% else %}
-                    <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
-                {% endif %}
-                <div>{{ recommended_product.name }}</div>
-                <div>{{ recommended_product.price }} ₽</div>
+<!-- Отзывы покупателей -->
+ <section class="reviews my-5">
+    <h2>Отзывы</h2>
+
+    {% if reviews %}
+        <div class="list-group">
+            {% for rev in reviews %}
+                <div class="list-group-item mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ rev.user.get_full_name|default:rev.user.email }}</strong>
+                        <small class="text-muted">{{ rev.created_at|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    <div class="mb-1">Оценка: {{ rev.rating }} / 5</div>
+                    <p>{{ rev.text }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted">Пока нет отзывов об этом товаре.</p>
+    {% endif %}
+ </section>
+
+<!-- Популярные товары -->
+<section class="mb-5">
+    <h2>Популярные товары</h2>
+    <div class="row">
+        {% for p in popular_products %}
+            <div class="col-6 col-md-4 col-lg-2 mb-4">
+                <div class="card h-100">
+                    {% if p.images.first %}
+                        <img src="{{ p.images.first.img.url }}" class="card-img-top" alt="{{ p.name }}">
+                    {% endif %}
+                    <div class="card-body p-2">
+                        <h6 class="card-title">{{ p.name }}</h6>
+                        <p class="card-text"><small>{{ p.view_count }} просмотров</small></p>
+                        <p class="card-text">{{ p.price }} ₽</p>
+                        <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-primary">Купить</a>
+                    </div>
+                </div>
             </div>
-        {% empty %}
-            <p>Нет рекомендаций.</p>
         {% endfor %}
     </div>
 </section>

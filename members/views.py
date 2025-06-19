@@ -29,8 +29,9 @@ from rest_framework.generics import (
 from rest_framework.authtoken.models import Token
 
 # Локальные импорты
-from .models import Product, Category, Review, Order, Gemestone, ProductImg, SaleEvent, OrderItem
+from .models import Product, Category, Review, Order, Gemestone, ProductImg, SaleEvent, OrderItem, Order, Review
 from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer, RegisterSerializer
+from .forms import OrderReviewForm
 
 
 # === HTML Views ===
@@ -43,10 +44,17 @@ class ProductDetailView(View):
         Product.objects.filter(pk=product.pk).update(view_count=F('view_count') + 1)
         # подгружаем обновлённое значение обратно в объект
         product.refresh_from_db(fields=['view_count'])
-        recommended_products = Product.objects.exclude(pk=pk).order_by('?')[:5]
+
+        popular_products = Product.objects.order_by('-view_count')[:6]
+        # ——— загрузить все отзывы для этого товара 
+        reviews = Review.objects.filter(
+            product=product
+        ).select_related('user').order_by('-created_at')
+
         return render(request, 'product_detail.html', {
             'product': product,
-            'recommended_products': recommended_products,
+            'popular_products': popular_products,
+            'reviews': reviews,
         })
 
 
@@ -368,18 +376,45 @@ def register_view(request):
 
 @login_required
 def order_detail_view(request, pk):
+    # 1) Берём заказ
     if request.user.is_staff:
         order = get_object_or_404(Order, pk=pk)
     else:
         order = get_object_or_404(Order, pk=pk, user=request.user)
 
-    order_items = order.items.select_related('product').all()
+    # 2) Получаем товары заказа
+    order_items = list(order.items.select_related('product').all())
 
-    # Вычисляем итоговую цену для каждой позиции
+    # 3) Собираем уже оставленные отзывы пользователя по этим товарам
+    existing_reviews = Review.objects.filter(
+        user=request.user,
+        product__in=[item.product for item in order_items]
+    )
+    reviews_by_product = { r.product_id: r for r in existing_reviews }
+
+    # 4) «Пришиваем» к каждому item .review и .line_total
     for item in order_items:
         item.line_total = item.quantity * item.prise_at_time_of_purchase
+        item.review     = reviews_by_product.get(item.product.id)
+
+    # 5) Обработка POST — сохранение нового отзыва (только когда заказ delivered)
+    if request.method == 'POST' and order.status == 'delivered':
+        form = OrderReviewForm(request.POST)
+        prod_id = int(request.POST.get('product_id') or 0)
+        # находим правильный item
+        matched = next((it for it in order_items if it.product.id == prod_id), None)
+        if form.is_valid() and matched and not matched.review:
+            review = form.save(commit=False)
+            review.user    = request.user
+            review.product = matched.product
+            review.save()
+            return redirect('order_detail', pk=pk)
+    else:
+        form = OrderReviewForm()
 
     return render(request, 'order_detail.html', {
-        'order': order,
+        'order':       order,
         'order_items': order_items,
+        'form':        form,
     })
+

@@ -33,6 +33,8 @@ urlpatterns = [
     path('admin/products/<int:pk>/delete/', AdminProductDeleteView.as_view(), name='product_delete'),
     path('admin/products/create/', views.create_product_view, name='product_create_form'),
     path('orders/<int:pk>/', views.order_detail_view, name='order_detail'),
+    path('orders/<int:pk>/', views.order_detail_view, name='order_detail'),
+
 
 
     # Теперь API
