@@ -7,14 +7,13 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         # Явно берем поля (можно было exclude=['status'] и т.п.)
-        fields = ['name', 'description', 'price', 'category', 'status']
+        fields = ['name', 'description', 'price', 'category']
         
         labels = {
             'name': 'Название товара',
             'description': 'Описание',
             'price': 'Цена (₽)',
             'category': 'Категория',
-            'status': 'Статус',
         }
         
         help_texts = {

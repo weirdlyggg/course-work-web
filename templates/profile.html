@@ -32,7 +32,13 @@
         {% if user.orders.all %}
             <ul>
                 {% for order in user.orders.all %}
-                    <li>Заказ №{{ order.id }} — {{ order.status }} ({{ order.total_price }} ₽)</li>
+                    <li>
+                        <a href="{% url 'order_detail' order.id %}">
+                            Заказ №{{ order.id }} — {{ order.status }} ({{ order.total_price }} ₽)
+                        </a>
+                    </li>
+                {% empty %}
+                    <li>У вас ещё нет заказов.</li>
                 {% endfor %}
             </ul>
         {% else %}

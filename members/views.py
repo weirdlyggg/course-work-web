@@ -29,7 +29,7 @@ from rest_framework.generics import (
 from rest_framework.authtoken.models import Token
 
 # Локальные импорты
-from .models import Product, Category, Review, Order, Gemestone, ProductImg, SaleEvent
+from .models import Product, Category, Review, Order, Gemestone, ProductImg, SaleEvent, OrderItem
 from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer, RegisterSerializer
 
 
@@ -365,3 +365,21 @@ def register_view(request):
     else:
         form = CustomUserRegistrationForm()
     return render(request, 'register.html', {'form': form})
+
+@login_required
+def order_detail_view(request, pk):
+    if request.user.is_staff:
+        order = get_object_or_404(Order, pk=pk)
+    else:
+        order = get_object_or_404(Order, pk=pk, user=request.user)
+
+    order_items = order.items.select_related('product').all()
+
+    # Вычисляем итоговую цену для каждой позиции
+    for item in order_items:
+        item.line_total = item.quantity * item.prise_at_time_of_purchase
+
+    return render(request, 'order_detail.html', {
+        'order': order,
+        'order_items': order_items,
+    })

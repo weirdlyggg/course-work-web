@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Заказ №{{ order.id }} — ARGE{% endblock %}
+{% block content %}
+    <div class="container my-5">
+        <h2>Заказ №{{ order.id }}</h2>
+        <p><strong>Статус:</strong> {{ order.get_status_display|default:order.status }}</p>
+        <p><strong>Создан:</strong> {{ order.created_at|date:"d.m.Y H:i" }}</p>
+        <p><strong>Сумма:</strong> {{ order.total_price }} ₽</p>
+
+        <h4 class="mt-4">Состав заказа</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Товар</th>
+                    <th>Цена в момент покупки</th>
+                    <th>Количество</th>
+                    <th>Итого</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in order_items %}
+                <tr>
+                    <td>
+                        <a href="{% url 'product_detail' item.product.id %}">
+                            {{ item.product.name }}
+                        </a>
+                    </td>
+                    <td>{{ item.prise_at_time_of_purchase }} ₽</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.prise_at_time_of_purchase }} ₽ × {{ item.quantity }} = 
+                        <strong>{{ item.line_total }} ₽</strong>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <a href="{% url 'profile' %}" class="btn btn-secondary mt-3">Назад в профиль</a>
+
+    </div>
+{% endblock %}

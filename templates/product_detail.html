@@ -25,13 +25,6 @@
             <h2>Описание:</h2>
             <p>{{ product.description }}</p>
 
-            <h2>Характеристики:</h2>
-            <ul>
-                <li>Материал: {{ product.material }}</li>
-                <li>Камень: {{ product.gemstone }}</li>
-                <li>Размер: {{ product.size }}</li>
-            </ul>
-
             <!-- Кнопка "Добавить в корзину" -->
             <form action="{% url 'add_to_cart' product.id %}" method="post">
                 {% csrf_token %}
