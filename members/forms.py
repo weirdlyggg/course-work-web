@@ -1,31 +1,32 @@
 # members/forms.py
 
 from django import forms
-from .models import Product, User  # Теперь User доступен
+# pylint: disable=no-member
+from .models import Product, User, Review
 
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         # Явно берем поля (можно было exclude=['status'] и т.п.)
         fields = ['name', 'description', 'price', 'category']
-        
+
         labels = {
             'name': 'Название товара',
             'description': 'Описание',
             'price': 'Цена (₽)',
             'category': 'Категория',
         }
-        
+
         help_texts = {
             'name': 'Краткое, до 255 символов.',
             'price': 'Число без пробелов.',
         }
-        
+
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
         }
-        
+
         error_messages = {
             'name': {
                 'required': 'Название обязательно.',
@@ -50,7 +51,7 @@ class ProductForm(forms.ModelForm):
         if price <= 0:
             raise forms.ValidationError('Цена должна быть больше нуля.')
         return price
-    
+
     def clean_description(self):
         desc = self.cleaned_data.get('description') or ""
         if len(desc.strip()) < 20:
@@ -65,9 +66,6 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'phone_number', 'address']
-
-from django import forms
-from .models import User
 
 class CustomUserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -85,8 +83,6 @@ class CustomUserRegistrationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
-
-from .models import Review
 
 class OrderReviewForm(forms.ModelForm):
     class Meta:

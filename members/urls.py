@@ -4,15 +4,16 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
-import debug_toolbar 
+import debug_toolbar
 
 from . import views
 from .views import AdminProductEditView, AdminProductDeleteView
-from .api import ProductViewSet
+from .api import ProductViewSet, OrderViewSet
 
 # инициализируем роутер
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='product')
+router.register(r'orders',    OrderViewSet,   basename='order')
 
 urlpatterns = [
     # Сначала HTML-страницы
@@ -30,21 +31,26 @@ urlpatterns = [
     path('checkout/', views.checkout_view, name='checkout'),
 
     path('admin/products/<int:pk>/edit/', AdminProductEditView.as_view(), name='product_update'),
-    path('admin/products/<int:pk>/delete/', AdminProductDeleteView.as_view(), name='product_delete'),
+    path('admin/products/<int:pk>/delete/', AdminProductDeleteView.as_view(),
+         name='product_delete'),
     path('admin/products/create/', views.create_product_view, name='product_create_form'),
 
     path('members-page/', views.members_page, name='members_page'),
-    
+
     path('orders/<int:pk>/', views.order_detail_view, name='order_detail'),
 
     path('api/', include(router.urls)),
 
     # Теперь API
     path('api/products/latest/', views.latest_products, name='latest_products'),
-    path('api/products/create/', views.ProductCreateAPIView.as_view(), name='product_create'),
-    path('api/products/<int:pk>/delete/', views.ProductDeleteAPIView.as_view(), name='api_product_delete'),
-    path('api/products/<int:pk>/', views.ProductDetailAPIView.as_view(), name='product_detail_api'),
-    path('api/products/category/<int:category_id>/', views.products_by_category, name='products_by_category'),
+    path('api/products/create/', views.ProductCreateAPIView.as_view(),
+         name='product_create'),
+    path('api/products/<int:pk>/delete/', views.ProductDeleteAPIView.as_view(),
+         name='api_product_delete'),
+    path('api/products/<int:pk>/', views.ProductDetailAPIView.as_view(),
+         name='product_detail_api'),
+    path('api/products/category/<int:category_id>/', views.products_by_category,
+         name='products_by_category'),
     path('api/products/affordable/', views.affordable_products, name='affordable_products'),
     path('api/products/sorted/', views.sorted_products, name='sorted_products'),
     path('api/products/list/', views.ProductListView.as_view(), name='product_list'),
@@ -52,8 +58,9 @@ urlpatterns = [
     path('api/login/', views.login_user, name='login'),
     path('api/members/me/', views.current_user, name='current_user'),
     path('api/products/top-rated/', views.top_rated_products, name='top_rated_products'),
-    path('api/products/<int:pk>/recommend/', views.recommend_products, name='recommend_products'),
-    
+    path('api/products/<int:pk>/recommend/', views.recommend_products,
+         name='recommend_products'),
+
 ]
 
 # Добавляем медиа-файлы только в режиме DEBUG

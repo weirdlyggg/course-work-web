@@ -1,6 +1,15 @@
 from rest_framework import serializers
-from .models import User
-from .models import Product, Category, Review, Order, ProductImg, SaleEvent
+# pylint: disable=no-member
+
+from .models import (
+User,
+Product,
+Category,
+Review,
+Order,
+ProductImg,
+SaleEvent
+)
 
 # Сериализатор для модели User
 class UserSerializer(serializers.ModelSerializer):
@@ -17,7 +26,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Используем User.objects.create_user
         return User.objects.create_user(**validated_data)
-    
+
 # # Сериализатор для модели Product
 # class ProductSerializer(serializers.ModelSerializer):
 #     class Meta:

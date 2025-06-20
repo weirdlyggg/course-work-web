@@ -1,14 +1,31 @@
 from django.contrib import admin, messages
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from xhtml2pdf import pisa
-from .models import User, Category, Product, Favorite, ProductImg, Order, OrderItem, Review, ReviewImg, Gemestone, ProductGemestone
-from .models import Document, Video, SaleEvent
+from django.utils.html import format_html
+from django.urls import reverse
 from import_export import resources, fields
 from import_export.admin import ImportExportModelAdmin
 from import_export.formats.base_formats import CSV
 from import_export.formats import base_formats
-from django.utils.html import format_html
+from xhtml2pdf import pisa
+# pylint: disable=no-member
+from .models import (User,
+    Category,
+    Product,
+    Favorite,
+    ProductImg,
+    Order,
+    OrderItem,
+    Review,
+    ReviewImg,
+    Gemestone,
+    Document,
+    Video,
+    ProductGemestone,
+    SaleEvent
+)
+
+
 
 class UTF8BOMCSV(CSV):
     """
@@ -34,7 +51,7 @@ class ProductResource(resources.ModelResource):
 
     def dehydrate_price_with_currency(self, product):
         return f"{product.price:.2f} ₽ (продукт №{product.id})"
-    
+
 
 
 @admin.action(description="Отметить выбранные заказы как отправленные")
@@ -56,7 +73,7 @@ class VideoAdmin(admin.ModelAdmin):
     search_fields = ('title',)
 
 @admin.register(Document)
-class DocumentAdmin(admin.ModelAdmin):  
+class DocumentAdmin(admin.ModelAdmin):
     list_display = ('title', 'file')
 
 class ProductInLine(admin.TabularInline):
@@ -91,12 +108,10 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
 
-
-
 @admin.register(Product)
 class ProductAdmin(ImportExportModelAdmin):
     resource_class = ProductResource
-    formats = (base_formats.XLSX,)  
+    formats = (base_formats.XLSX,)
     list_display = ('name', 'price', 'discounted', 'category', 'status')
     list_filter  = ('status', 'category')
     search_fields = ('name',)

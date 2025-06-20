@@ -1,23 +1,26 @@
 from django.views.generic import View, UpdateView, DeleteView
 from django.shortcuts import get_object_or_404, render, redirect
-from django.db.models import F, Avg
+from django.db.models import F, Avg, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.contrib.auth import login
 from django.urls import reverse
 from django.utils import timezone
-from django.db.models import Q, F
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
 
-from rest_framework.decorators import api_view, action
-from rest_framework import viewsets
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.generics import ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, RetrieveAPIView
+from rest_framework.generics import (
+    ListAPIView,
+    CreateAPIView,
+    UpdateAPIView,
+    DestroyAPIView,
+    RetrieveAPIView
+)
 from rest_framework.authtoken.models import Token
-
+# pylint: disable=no-member
 from .models import (
     Product,
     Category,
@@ -25,16 +28,11 @@ from .models import (
     Order,
     Gemestone,
     SaleEvent,
-    OrderItem,
-    ProductImg,
+    OrderItem
 )
 from .serializers import (
     UserSerializer,
-    ProductSerializer,
-    CategorySerializer,
-    ReviewSerializer,
-    OrderSerializer,
-    RegisterSerializer,
+    ProductSerializer
 )
 from .forms import (
     OrderReviewForm,
@@ -165,7 +163,7 @@ def catalog(request):
             prod.sale_price = prod.price * (100 - sale_event.discount) / 100
         else:
             prod.sale_price = None
-    
+
     return render(request, 'catalog.html', {
         'products':          page_obj,
         'page_obj':          page_obj,
@@ -450,7 +448,7 @@ class AdminProductEditView(UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         return self.request.user.is_staff
-    
+
 class AdminProductDeleteView(UserPassesTestMixin, DeleteView):
     model = Product
     template_name = 'product_confirm_delete.html'
@@ -458,7 +456,7 @@ class AdminProductDeleteView(UserPassesTestMixin, DeleteView):
 
     def test_func(self):
         return self.request.user.is_staff
-    
+
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)

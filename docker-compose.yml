@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    volumes:
+      - .:/app                # монтируем весь проект
+      - ./db.sqlite3:/app/db.sqlite3   # монтируем вашу БД
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=${SECRET_KEY}   # подтягиваем из .env
+    env_file:
+      - .env

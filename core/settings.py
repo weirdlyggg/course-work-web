@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-%q!v%@g46#v-1!2s3ys_73f99pk&=%4r!%)v@q%a0u89m14a=7'
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'simple_history',
     'import_export',
+    'django_filters',
 ]
 
 # Настройки DRF
@@ -32,12 +33,16 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',  # Для API
         'rest_framework.renderers.BrowsableAPIRenderer',  # Для интерактивного просмотра API
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
 }
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -127,3 +132,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 LOGIN_URL = 'login'  # Указываем URL для входа
 LOGIN_REDIRECT_URL = 'profile'  # Где направлять пользователя после входа
 LOGOUT_REDIRECT_URL = 'home'    # Где направлять пользователя после выхода
+
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_MAX_AGE = 60 * 60 * 24 * 7  # кэшировать неделю

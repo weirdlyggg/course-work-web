@@ -1,4 +1,5 @@
 from django.contrib.auth.backends import BaseBackend
+# pylint: disable=no-member
 from .models import User
 
 class EmailAuthBackend(BaseBackend):
