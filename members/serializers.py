@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import User
-from .models import Product, Category, Review, Order, ProductImg
+from .models import Product, Category, Review, Order, ProductImg, SaleEvent
 
 # Сериализатор для модели User
 class UserSerializer(serializers.ModelSerializer):
@@ -54,3 +54,13 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'name', 'description', 'price', 'category', 'images']
+
+class SaleEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SaleEvent
+        fields = '__all__'
+
+    def validate_discount(self, value):
+        if not (1 <= value < 100):
+            raise serializers.ValidationError('Скидка должна быть от 1 до 99 процентов.')
+        return value

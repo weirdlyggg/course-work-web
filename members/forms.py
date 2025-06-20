@@ -46,9 +46,9 @@ class ProductForm(forms.ModelForm):
         )
 
     def clean_price(self):
-        price = self.cleaned_data.get('price')
-        if price is None or price <= 0:
-            raise forms.ValidationError("Цена должна быть положительной.")
+        price = self.cleaned_data['price']
+        if price <= 0:
+            raise forms.ValidationError('Цена должна быть больше нуля.')
         return price
     
     def clean_description(self):

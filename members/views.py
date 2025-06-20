@@ -7,10 +7,12 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.contrib.auth import login
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models import Q, F
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
+from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, RetrieveAPIView
@@ -109,36 +111,44 @@ class ProductDetailView(View):
 
 
 def catalog(request):
+    q = request.GET.get('q', '').strip()
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
     discount_only = request.GET.get('discount_only') == 'on'
+    hide_empty = request.GET.get('hide_empty') == 'on'
     category_id = request.GET.get('category')
     gemestone_id = request.GET.get('gemestone')
-    q = request.GET.get('q')
-    if q:
-        products_qs = products_qs.filter(name__icontains=q)
-
-    # --- базовый queryset и фильтрация по цене ---
+    # базовый queryset
     products_qs = Product.objects.all()
+    # 1) Поиск: имя **ИЛИ** описание **И** status='available'
+    if q:
+        products_qs = products_qs.filter(
+            (Q(name__icontains=q) | Q(description__icontains=q)) &
+            Q(status='available')
+        )
+    # 2) Фильтр «только с картинками» и «не скрытые»
+    if hide_empty:
+        products_qs = products_qs.filter(
+            ~Q(images__isnull=True),    # has at least one image
+            ~Q(status='hidden')         # статус не hidden
+        ).distinct()
+    # 3) Диапазон цены
     if min_price:
         products_qs = products_qs.filter(price__gte=min_price)
     if max_price:
         products_qs = products_qs.filter(price__lte=max_price)
-
-    # --- фильтр “только со скидкой” ---
+    # 4) Только со скидкой (если галочка)
     if discount_only:
         now = timezone.now()
         products_qs = products_qs.filter(
             category__saleevent__end_time__gt=now
         ).distinct()
-
-    # Filters
+    # 5) Категории и камни
     if category_id:
         products_qs = products_qs.filter(category_id=category_id)
     if gemestone_id:
         products_qs = products_qs.filter(gemestones__id=gemestone_id)
-    
-    # --- пагинация ---
+    # пагинация
     paginator   = Paginator(products_qs, 12)
     page_number = request.GET.get('page')
     try:
@@ -147,15 +157,15 @@ def catalog(request):
         page_obj = paginator.page(1)
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
-
-    # --- рассчитываем discounted_price у товаров на странице ---
-    now = timezone.now()
+    # считаем цену со скидкой для отображения
+    now        = timezone.now()
     sale_event = SaleEvent.objects.filter(end_time__gt=now).first()
     for prod in page_obj:
         if sale_event and prod.category_id == sale_event.category_id:
             prod.sale_price = prod.price * (100 - sale_event.discount) / 100
         else:
             prod.sale_price = None
+    
     return render(request, 'catalog.html', {
         'products':          page_obj,
         'page_obj':          page_obj,
@@ -163,12 +173,13 @@ def catalog(request):
         'all_names':         Product.objects.values_list('name', flat=True).distinct(),
         'categories':        Category.objects.all(),
         'gemestones':        Gemestone.objects.all(),
-        'search_query':      q or '',
-        'selected_category':  category_id or '',
-        'selected_gemestone': gemestone_id or '',
+        'search_query':      q,
         'min_price':         min_price or '',
         'max_price':         max_price or '',
         'discount_only':     discount_only,
+        'hide_empty':        hide_empty,
+        'selected_category': category_id or '',
+        'selected_gemestone':gemestone_id or '',
     })
 
 
@@ -460,3 +471,4 @@ def register_view(request):
     else:
         form = CustomUserRegistrationForm()
     return render(request, 'register.html', {'form': form})
+

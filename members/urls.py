@@ -1,41 +1,43 @@
-from django.urls import path
-from . import views
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.views.generic import RedirectView
-from .views import AdminProductEditView, AdminProductDeleteView
-import debug_toolbar
-from django.urls import include
 from django.contrib.auth import views as auth_views
+from django.views.generic import RedirectView
+from rest_framework.routers import DefaultRouter
+import debug_toolbar 
+
+from . import views
+from .views import AdminProductEditView, AdminProductDeleteView
+from .api import ProductViewSet
+
+# инициализируем роутер
+router = DefaultRouter()
+router.register(r'products', ProductViewSet, basename='product')
 
 urlpatterns = [
     # Сначала HTML-страницы
     path('', views.home, name='home'),
     path('catalog/', views.catalog, name='catalog'),
     path('product/<int:pk>/', views.ProductDetailView.as_view(), name='product_detail'),
-    # Маршрут для профиля (личного кабинета)
-    path('profile/', views.profile_view, name='profile'),
-    
-    # Маршрут для входа через HTML-форму
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
-    
-    # Маршрут для регистрации
-    path('register/', views.register_view, name='register'),
 
-    
-    # Маршрут для выхода
+    path('profile/', views.profile_view, name='profile'),
+    path('register/', views.register_view, name='register'),
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
+
     path('add-to-cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('cart/', views.cart_view, name='cart'),
-    path('members-page/', views.members_page, name='members_page'),
     path('checkout/', views.checkout_view, name='checkout'),
+
     path('admin/products/<int:pk>/edit/', AdminProductEditView.as_view(), name='product_update'),
     path('admin/products/<int:pk>/delete/', AdminProductDeleteView.as_view(), name='product_delete'),
     path('admin/products/create/', views.create_product_view, name='product_create_form'),
-    path('orders/<int:pk>/', views.order_detail_view, name='order_detail'),
+
+    path('members-page/', views.members_page, name='members_page'),
+    
     path('orders/<int:pk>/', views.order_detail_view, name='order_detail'),
 
-
+    path('api/', include(router.urls)),
 
     # Теперь API
     path('api/products/latest/', views.latest_products, name='latest_products'),
@@ -51,6 +53,7 @@ urlpatterns = [
     path('api/members/me/', views.current_user, name='current_user'),
     path('api/products/top-rated/', views.top_rated_products, name='top_rated_products'),
     path('api/products/<int:pk>/recommend/', views.recommend_products, name='recommend_products'),
+    
 ]
 
 # Добавляем медиа-файлы только в режиме DEBUG

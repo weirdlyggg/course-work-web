@@ -4,6 +4,38 @@ from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 from .models import User, Category, Product, Favorite, ProductImg, Order, OrderItem, Review, ReviewImg, Gemestone, ProductGemestone
 from .models import Document, Video, SaleEvent
+from import_export import resources, fields
+from import_export.admin import ImportExportModelAdmin
+from import_export.formats.base_formats import CSV
+from import_export.formats import base_formats
+from django.utils.html import format_html
+
+class UTF8BOMCSV(CSV):
+    """
+    CSV-формат, который при экспорте ставит BOM,
+    чтобы Excel по-умолчанию открыл файл в UTF-8.
+    """
+    def export_data(self, dataset):
+        raw = super().export_data(dataset)
+        # если вернулся str — перекодируем, иначе оставляем bytes
+        if isinstance(raw, str):
+            raw = raw.encode(self.get_encoding())
+        return b'\xef\xbb\xbf' + raw
+
+class ProductResource(resources.ModelResource):
+    price_with_currency = fields.Field(column_name='price_with_currency')
+    class Meta:
+        model = Product
+        fields = ('id','name','price','price_with_currency','category__name','created_at')
+        export_order = fields
+
+    def dehydrate_price(self, product):
+        return f"{product.price:.2f} ₽"
+
+    def dehydrate_price_with_currency(self, product):
+        return f"{product.price:.2f} ₽ (продукт №{product.id})"
+    
+
 
 @admin.action(description="Отметить выбранные заказы как отправленные")
 def mark_as_shipped(modeladmin, request, queryset):
@@ -59,12 +91,32 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
 
+
+
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'category', 'view_count',)
+class ProductAdmin(ImportExportModelAdmin):
+    resource_class = ProductResource
+    formats = (base_formats.XLSX,)  
+    list_display = ('name', 'price', 'discounted', 'category', 'status')
+    list_filter  = ('status', 'category')
     search_fields = ('name',)
-    list_filter = ('category',)
     inlines = [ProductGemstoneInLine, ProductImageInLine]
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description'),
+        }),
+        ('Коммерческие параметры', {
+            'fields': ('category', 'price', 'status'),
+        }),
+    )
+
+    def discounted(self, obj):
+        return obj.discounted_price or '-'
+    discounted.short_description = 'Цена со скидкой'
+
+    def get_export_queryset(self, request):
+        qs = super().get_export_queryset(request)
+        return qs.filter(status='available')
 
 @admin.register(SaleEvent)
 class SaleEventAdmin(admin.ModelAdmin):
@@ -107,6 +159,13 @@ class OrderItemAdmin(admin.ModelAdmin):
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ('user', 'product', 'rating', 'created_at',)
     search_fields = ('product__name', 'user__email',)
+
+    @admin.display(description='Пользователь')
+    def user_link(self, obj):
+        return format_html('<a href="{}">{}</a>',
+            reverse('admin:members_user_change', args=(obj.user.id,)),
+            obj.user.get_full_name() or obj.user.email
+        )
 
 @admin.register(ReviewImg)
 class ReviewImgAdmin(admin.ModelAdmin):

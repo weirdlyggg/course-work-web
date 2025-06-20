@@ -22,6 +22,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'debug_toolbar',
+    'simple_history',
+    'import_export',
 ]
 
 # Настройки DRF
@@ -42,6 +44,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 AUTH_USER_MODEL = 'members.User'

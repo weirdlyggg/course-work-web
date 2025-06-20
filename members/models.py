@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.core.exceptions import ValidationError
-
+from simple_history.models import HistoricalRecords
 
 
 class UserManager(BaseUserManager):
@@ -74,6 +74,13 @@ class SaleEvent(models.Model):
     discount = models.PositiveIntegerField(verbose_name="Скидка, %")
     end_time = models.DateTimeField(verbose_name="Конец акции")
 
+    def clean(self):
+        super().clean()
+        if not (1 <= self.discount < 100):
+            raise ValidationError({
+                'discount': 'Скидка должна быть от 1% до 99%.'
+            })
+
     def __str__(self):
         return f"Распродажа: {self.category.name} –{self.discount}% до {self.end_time}"
 
@@ -96,6 +103,14 @@ class Product(models.Model):
 
     objects = models.Manager()
     available = AvailableProductsManager()
+    history = HistoricalRecords()
+
+    def clean(self):
+        super().clean()
+        if self.price <= 0:
+            raise ValidationError({
+                'price': 'Цена должна быть больше нуля.'
+            })
 
     def __str__(self):
         return self.name
@@ -161,6 +176,8 @@ class Order(models.Model):
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(default=timezone.now)
 
+    history = HistoricalRecords()
+
     def __str__(self):
         return f"Order #{self.id} by {self.user.first_name} {self.user.last_name}"
     
@@ -187,6 +204,13 @@ class Review(models.Model):
     rating = models.PositiveIntegerField()
     text = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
+
+    def clean(self):
+        super().clean()
+        if not (1 <= self.rating <= 5):
+            raise ValidationError({
+                'rating': 'Оценка должна быть в диапазоне от 1 до 5.'
+            })
 
     def __str__(self):
         return f"Review for {self.product.name} by {self.user.first_name} {self.user.last_name}"
