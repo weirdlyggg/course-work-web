@@ -11,7 +11,7 @@
         {{ form.instance.pk|yesno:"Редактировать товар,Добавить товар" }}
     </h2>
 
-    <form method="post" enctype="multipart/form-data" class="product-form">
+    <!-- <form method="post" enctype="multipart/form-data" class="product-form">
         {% csrf_token %}
         {% for field in form %}
             <div class="mb-3">
@@ -25,6 +25,38 @@
                 {% endif %}
             </div>
         {% endfor %}
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+    </form> -->
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {# выведем все не‐поле-специфические ошибки #}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        {# для каждого поля покажем label, ошибки и сам инпут #}
+        <div class="mb-3">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+            {{ form.name.errors }}
+        </div>
+        <div class="mb-3">
+            {{ form.description.label_tag }}
+            {{ form.description }}
+            {{ form.description.errors }}
+        </div>
+        <div class="mb-3">
+            {{ form.price.label_tag }}
+            {{ form.price }}
+            {{ form.price.errors }}
+        </div>
+        <div class="mb-3">
+            {{ form.category.label_tag }}
+            {{ form.category }}
+            {{ form.category.errors }}
+        </div>
         <button type="submit" class="btn btn-primary">Сохранить</button>
     </form>
 

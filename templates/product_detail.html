@@ -9,6 +9,30 @@
   ← Назад
 </button>
 
+{# Для staff: редактировать и удалить #}
+{% if request.user.is_staff %}
+<div class="mb-4">
+    <!-- Редактировать -->
+     <a href="{% url 'product_update' product.id %}"
+        class="btn btn-sm btn-warning me-2"
+        title="Редактировать">
+        ✎
+    </a>
+
+    <!-- Удалить -->
+     <form action="{% url 'product_delete' product.id %}"
+        method="post"
+        class="d-inline"
+        onsubmit="return confirm('Вы уверены, что хотите удалить «{{ product.name }}»?');">
+        {% csrf_token %}
+        <button type="submit"
+            class="btn btn-sm btn-danger"
+            title="Удалить">
+            🗑
+        </button>
+    </form>
+</div>
+{% endif %}
 
 <div class="product-full-card">
     <!-- Дополнительные изображения -->
@@ -65,6 +89,35 @@
         <p class="text-muted">Пока нет отзывов об этом товаре.</p>
     {% endif %}
  </section>
+
+<!-- Похожие товары из той же категории -->
+<section class="similar-products mb-5">
+    <h2>Похожие товары</h2>
+    <div class="grid">
+        {% for sp in similar_products %}
+            <div class="product-card">
+                <a href="{% url 'product_detail' sp.id %}">
+                    {% if sp.images.first %}
+                        <img src="{{ sp.images.first.img.url }}" alt="{{ sp.name }}">
+                    {% else %}
+                        <img src="https://via.placeholder.com/300x200" alt="Нет изображения">
+                    {% endif %}
+                </a>
+                <div>{{ sp.name }}</div>
+                <div>
+                    {% if sp.discounted_price %}
+                        <del>{{ sp.price|floatformat:0 }} ₽</del>
+                        <ins>{{ sp.discounted_price|floatformat:0 }} ₽</ins>
+                    {% else %}
+                        {{ sp.price|floatformat:0 }} ₽
+                    {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <p>Нет похожих товаров.</p>
+        {% endfor %}
+    </div>
+</section>
 
 <!-- Популярные товары -->
 <section class="mb-5">

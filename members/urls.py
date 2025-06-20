@@ -49,6 +49,8 @@ urlpatterns = [
     path('api/products/average-price/', views.average_price, name='average_price'),
     path('api/login/', views.login_user, name='login'),
     path('api/members/me/', views.current_user, name='current_user'),
+    path('api/products/top-rated/', views.top_rated_products, name='top_rated_products'),
+    path('api/products/<int:pk>/recommend/', views.recommend_products, name='recommend_products'),
 ]
 
 # Добавляем медиа-файлы только в режиме DEBUG

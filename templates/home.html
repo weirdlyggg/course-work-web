@@ -135,4 +135,36 @@
     </script>
 {% endif %}
 
+<!-- Топ-10 по рейтингу -->
+<section class="top-rated-products mb-5">
+    <h2>Топ товаров по среднему рейтингу</h2>
+    <div class="grid">
+        {% for p in top_rated_products %}
+            <div class="product-card">
+                <a href="{% url 'product_detail' p.id %}">
+                    {% if p.images.first %}
+                        <img src="{{ p.images.first.img.url }}" alt="{{ p.name }}">
+                    {% else %}
+                        <img src="https://via.placeholder.com/300x200" alt="Нет изображения">
+                    {% endif %}
+                </a>
+                <div>{{ p.name }}</div>
+                <div>
+                    {{ p.avg_rating|floatformat:1 }} ★
+                </div>
+                <div>
+                    {% if p.discounted_price %}
+                        <del>{{ p.price|floatformat:0 }} ₽</del>
+                        <ins>{{ p.discounted_price|floatformat:0 }} ₽</ins>
+                    {% else %}
+                        {{ p.price|floatformat:0 }} ₽
+                    {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <p>Нет товаров с рейтингом.</p>
+        {% endfor %}
+    </div>
+</section>
+
 {% endblock %}

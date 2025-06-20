@@ -41,6 +41,36 @@ from .forms import (
     ProductForm,
 )
 
+@api_view(['GET'])
+def top_rated_products(request):
+    """
+    GET /api/products/top-rated/
+    Возвращает 10 товаров с наивысшим средним рейтингом.
+    """
+    # Аннотируем каждый товар его avg_rating и сортируем
+    qs = (
+        Product.objects
+               .annotate(avg_rating=Avg('review__rating'))
+               .filter(avg_rating__isnull=False)
+               .order_by('-avg_rating')[:10]
+    )
+    serializer = ProductSerializer(qs, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def recommend_products(request, pk):
+    """
+    GET /api/products/{pk}/recommend/
+    Возвращает до 5 товаров из той же категории (без самого себя).
+    """
+    product = get_object_or_404(Product, pk=pk)
+    qs = (
+        Product.objects
+               .filter(category=product.category)
+               .exclude(pk=product.pk)[:5]
+    )
+    serializer = ProductSerializer(qs, many=True, context={'request': request})
+    return Response(serializer.data)
 
 # === HTML Views ===
 class ProductDetailView(View):
@@ -63,52 +93,82 @@ class ProductDetailView(View):
         )
         # Popular products
         popular_products = Product.objects.order_by('-view_count')[:6]
+        # Подборка «похожих»: до 5 товаров из той же категории
+        similar_products = (
+            Product.objects
+                .filter(category=product.category)
+                .exclude(pk=product.pk)[:5]
+        )
         return render(request, 'product_detail.html', {
             'product': product,
             'sale_event': sale_event,
             'reviews': reviews,
             'popular_products': popular_products,
+            'similar_products': similar_products,
         })
 
 
 def catalog(request):
-    qs = Product.objects.all()
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    discount_only = request.GET.get('discount_only') == 'on'
     category_id = request.GET.get('category')
     gemestone_id = request.GET.get('gemestone')
     q = request.GET.get('q')
+    if q:
+        products_qs = products_qs.filter(name__icontains=q)
+
+    # --- базовый queryset и фильтрация по цене ---
+    products_qs = Product.objects.all()
+    if min_price:
+        products_qs = products_qs.filter(price__gte=min_price)
+    if max_price:
+        products_qs = products_qs.filter(price__lte=max_price)
+
+    # --- фильтр “только со скидкой” ---
+    if discount_only:
+        now = timezone.now()
+        products_qs = products_qs.filter(
+            category__saleevent__end_time__gt=now
+        ).distinct()
+
     # Filters
     if category_id:
-        qs = qs.filter(category_id=category_id)
+        products_qs = products_qs.filter(category_id=category_id)
     if gemestone_id:
-        qs = qs.filter(gemestones__id=gemestone_id)
-    if q:
-        qs = qs.filter(name__icontains=q)
-    # Pagination
-    paginator = Paginator(qs, 12)
-    page_num = request.GET.get('page')
+        products_qs = products_qs.filter(gemestones__id=gemestone_id)
+    
+    # --- пагинация ---
+    paginator   = Paginator(products_qs, 12)
+    page_number = request.GET.get('page')
     try:
-        page_obj = paginator.page(page_num)
+        page_obj = paginator.page(page_number)
     except PageNotAnInteger:
         page_obj = paginator.page(1)
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
-    # Active sale event
-    sale_event = SaleEvent.objects.filter(end_time__gt=timezone.now()).first()
-    # Data for filters
-    all_names = Product.objects.values_list('name', flat=True).distinct()
-    categories = Category.objects.all()
-    gemestones = Gemestone.objects.all()
+
+    # --- рассчитываем discounted_price у товаров на странице ---
+    now = timezone.now()
+    sale_event = SaleEvent.objects.filter(end_time__gt=now).first()
+    for prod in page_obj:
+        if sale_event and prod.category_id == sale_event.category_id:
+            prod.sale_price = prod.price * (100 - sale_event.discount) / 100
+        else:
+            prod.sale_price = None
     return render(request, 'catalog.html', {
-        'products': page_obj,
-        'page_obj': page_obj,
-        'paginator': paginator,
-        'sale_event': sale_event,
-        'all_names': all_names,
-        'categories': categories,
-        'gemestones': gemestones,
-        'search_query': q or '',
-        'selected_category': category_id or '',
+        'products':          page_obj,
+        'page_obj':          page_obj,
+        'paginator':         paginator,
+        'all_names':         Product.objects.values_list('name', flat=True).distinct(),
+        'categories':        Category.objects.all(),
+        'gemestones':        Gemestone.objects.all(),
+        'search_query':      q or '',
+        'selected_category':  category_id or '',
         'selected_gemestone': gemestone_id or '',
+        'min_price':         min_price or '',
+        'max_price':         max_price or '',
+        'discount_only':     discount_only,
     })
 
 
@@ -125,11 +185,18 @@ def home(request):
                 'old_price': p.price,
                 'new_price': f"{discount_price:.2f}",
             })
+    top_rated_products = (
+        Product.objects
+            .annotate(avg_rating=Avg('review__rating'))
+            .filter(avg_rating__isnull=False)
+            .order_by('-avg_rating')[:6]
+    )
     return render(request, 'home.html', {
         'latest_products': latest_products,
         'popular_products': popular_products,
         'sale_event': sale_event,
         'sale_products': sale_products,
+        'top_rated_products': top_rated_products,
     })
 
 
@@ -245,35 +312,67 @@ def add_to_cart(request, product_id):
         request.session['cart'] = cart
     return redirect('product_detail', pk=product_id)
 
-
 def checkout_view(request):
+    # 1) Получаем список ID товаров из сессии (по умолчанию пустой список)
     cart_ids = request.session.get('cart', [])
     if not cart_ids:
+        # если корзина пуста — перенаправляем обратно
         return redirect('cart')
-    products = Product.objects.filter(id__in=cart_ids)
-    sale_event = SaleEvent.objects.filter(end_time__gt=timezone.now()).first()
-    # calculate total with sale
-    total = sum(
-        (p.price * (100 - sale_event.discount) / 100) if sale_event and p.category_id==sale_event.category_id else p.price
-        for p in products
-    )
-    order = Order.objects.create(user=request.user, total_price=total, status='pending')
+
+    user       = request.user
+    now        = timezone.now()
+    sale_event = SaleEvent.objects.filter(end_time__gt=now).first()
+
+    # 2) Достаём продукты
+    products = list(Product.objects.filter(id__in=cart_ids))
+
+    # 3) Вешаем sale_price на каждый продукт
     for p in products:
-        price = (p.price * (100 - sale_event.discount) / 100) if sale_event and p.category_id==sale_event.category_id else p.price
+        if sale_event and p.category_id == sale_event.category_id:
+            p.sale_price = p.price * (100 - sale_event.discount) / 100
+        else:
+            p.sale_price = None
+
+    # 4) Считаем общую сумму, отдавая приоритет sale_price
+    total = 0
+    for p in products:
+        total += (p.sale_price or p.price)
+
+    # 5) Создаём сам Order
+    order = Order.objects.create(
+        user        = user,
+        total_price = total,
+        status      = 'pending'
+    )
+
+    # 6) И каждый OrderItem
+    for p in products:
+        price_to_use = p.sale_price or p.price
         OrderItem.objects.create(
-            order=order,
-            product=p,
-            quantity=1,
-            prise_at_time_of_purchase=price,
+            order                     = order,
+            product                   = p,
+            quantity                  = 1,
+            prise_at_time_of_purchase = price_to_use
         )
+
+    # 7) Очищаем корзину и редирект в профиль
     request.session['cart'] = []
     return redirect('profile')
 
 
 def cart_view(request):
-    products = Product.objects.filter(id__in=request.session.get('cart', []))
-    sale_event = SaleEvent.objects.filter(end_time__gt=timezone.now()).first()
-    return render(request, 'cart.html', {'products': products, 'sale_event': sale_event})
+    cart_ids = request.session.get('cart', [])
+    products = Product.objects.filter(id__in=cart_ids)
+    now = timezone.now()
+    sale_event = SaleEvent.objects.filter(end_time__gt=now).first()
+    for p in products:
+        if sale_event and p.category_id == sale_event.category_id:
+            p.sale_price = p.price * (100 - sale_event.discount) / 100
+        else:
+            p.sale_price = None
+    return render(request, 'cart.html', {
+        'products': products,
+    })
 
 @login_required
 def order_detail_view(request, pk):

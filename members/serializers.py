@@ -30,6 +30,10 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ReviewSerializer(serializers.ModelSerializer):
+    def validate_rating(self, value):
+        if not (1 <= value <= 5):
+            raise serializers.ValidationError("Рейтинг от 1 до 5")
+        return value
     class Meta:
         model = Review
         fields = '__all__'

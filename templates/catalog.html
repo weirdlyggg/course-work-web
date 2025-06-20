@@ -19,33 +19,59 @@
         </form>
         <div class="row">
             <!-- Фильтры -->
-            <div class="col-md-3">
+            <div class="col-md-3 catalog-filters">
                 <h4>Фильтры</h4>
                 <form method="get">
-                    <div class="mb-3">
-                        <h6>Категория</h6>
-                        {% for category in categories %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="category" value="{{ category.id }}"
-                                    {% if selected_category == category.id %}checked{% endif %}>
-                                <label class="form-check-label">{{ category.name }}</label>
+                    <div class="mb-4">
+                        <h6>Диапазон цены (₽)</h6>
+                        <div class="row g-2 mb-3">
+                            <!-- поле “от” -->
+                            <div class="col-12">
+                                <div class="input-group">
+                                    <span class="input-group-text">от</span>
+                                    <input type="number" name="min_price" value="{{ min_price }}" class="form-control" placeholder="0">
+                                </div>
                             </div>
-                        {% endfor %}
-                    </div>
-
-                    <div class="mb-3">
-                        <h6>Камень</h6>
-                        {% for gemestone in gemestones %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="gemestone" value="{{ gemestone.id }}"
-                                    {% if selected_gemestone == gemestone.id %}checked{% endif %}>
-                                <label class="form-check-label">{{ gemestone.name }}</label>
+                            <!-- поле “до” -->
+                            <div class="col-12">
+                                <div class="input-group">
+                                    <span class="input-group-text">до</span>
+                                    <input type="number" name="max_price" value="{{ max_price }}" class="form-control" placeholder="∞">
+                                </div>
                             </div>
-                        {% endfor %}
+                        </div>
+                        <!-- чекбокс “только со скидкой” -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="discount_only" id="discount-only" {% if discount_only %}checked{% endif %}>
+                            <label class="form-check-label" for="discount-only">Только со скидкой</label>
+                        </div>
                     </div>
+                    <form method="get">
+                        <div class="mb-3">
+                            <h6>Категория</h6>
+                            {% for category in categories %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="category" value="{{ category.id }}"
+                                        {% if selected_category == category.id %}checked{% endif %}>
+                                    <label class="form-check-label">{{ category.name }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
 
-                    <button type="submit" class="btn btn-primary w-100">Применить фильтр</button>
-                </form>
+                        <div class="mb-3">
+                            <h6>Камень</h6>
+                            {% for gemestone in gemestones %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="gemestone" value="{{ gemestone.id }}"
+                                        {% if selected_gemestone == gemestone.id %}checked{% endif %}>
+                                    <label class="form-check-label">{{ gemestone.name }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+
+                        <button type="submit" class="btn btn-primary w-100">Применить фильтр</button>
+                    </form>
             </div>
 
             <!-- Товары -->

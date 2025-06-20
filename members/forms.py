@@ -50,6 +50,14 @@ class ProductForm(forms.ModelForm):
         if price is None or price <= 0:
             raise forms.ValidationError("Цена должна быть положительной.")
         return price
+    
+    def clean_description(self):
+        desc = self.cleaned_data.get('description') or ""
+        if len(desc.strip()) < 20:
+            raise forms.ValidationError(
+                "Описание слишком короткое — минимум 20 символов."
+            )
+        return desc
 
 
 # Форма редактирования профиля пользователя
