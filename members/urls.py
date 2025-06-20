@@ -40,7 +40,7 @@ urlpatterns = [
     # Теперь API
     path('api/products/latest/', views.latest_products, name='latest_products'),
     path('api/products/create/', views.ProductCreateAPIView.as_view(), name='product_create'),
-    path('api/products/<int:pk>/delete/', views.ProductDeleteAPIView.as_view(), name='product_delete'),
+    path('api/products/<int:pk>/delete/', views.ProductDeleteAPIView.as_view(), name='api_product_delete'),
     path('api/products/<int:pk>/', views.ProductDetailAPIView.as_view(), name='product_detail_api'),
     path('api/products/category/<int:category_id>/', views.products_by_category, name='products_by_category'),
     path('api/products/affordable/', views.affordable_products, name='affordable_products'),

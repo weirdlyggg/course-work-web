@@ -52,17 +52,48 @@
             <div class="col-md-9">
                 <div class="grid">
                     {% for product in products %}
-                        <div class="product-card">
+                        <div class="product-card position-relative">
                             {% if product.images.all %}
                                 <a href="{% url 'product_detail' product.id %}">
                                     <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
                                 </a>
                                 <div>{{ product.name }}</div>
-                                <div>{{ product.price }} ₽</div>
+                                {% if product.discounted_price %}
+                                    <div class="price">
+                                        <del>{{ product.price|floatformat:0 }} ₽</del>
+                                        <ins>{{ product.discounted_price|floatformat:0 }} ₽</ins>
+                                    </div>
+                                {% else %}
+                                    <div class="price">{{ product.price|floatformat:0 }} ₽</div>
+                                {% endif %}
                             {% else %}
                                 <img src="https://via.placeholder.com/300x200"  alt="Нет изображения">
                                 <div>Товар без изображения</div>
                                 <div>Цена не указана</div>
+                            {% endif %}
+
+                            {# --- админские кнопки: редактировать и удалить (появятся только у staff) --- #}
+                            {% if user.is_staff %}
+                                <div class="admin-actions">
+                                    <!-- Редактировать -->
+                                     <a href="{% url 'product_update' product.id %}"
+                                        class="text-warning me-2"
+                                        title="Редактировать">
+                                        ✎
+                                    </a>
+                                    <!-- Удалить (формой POST + CSRF) -->
+                                     <form method="post"
+                                        action="{% url 'product_delete' product.id %}"
+                                        style="display:inline"
+                                        onsubmit="return confirm('Вы уверены, что хотите удалить «{{ product.name }}»?');">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="btn btn-link p-0 m-0 text-danger"
+                                        title="Удалить">
+                                        🗑
+                                    </button>
+                                    </form>
+                                </div>
                             {% endif %}
                         </div>
                     {% empty %}

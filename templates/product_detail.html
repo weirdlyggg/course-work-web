@@ -21,7 +21,14 @@
     <div class="product-card-info">
         <!-- Заголовок -->
         <h1>{{ product.name }}</h1>
-        <p>{{ product.price }} ₽</p>
+        {% if product.discounted_price %}
+            <p class="fs-4">
+                <del class="text-muted">{{ product.price|floatformat:0 }} ₽</del>
+                <ins class="ms-2">{{ product.discounted_price|floatformat:0 }} ₽</ins>
+            </p>
+        {% else %}
+            <p class="fs-4">{{ product.price|floatformat:0 }} ₽</p>
+        {% endif %}
 
         <!-- Информация о товаре -->
         <div class="product-info">
@@ -72,7 +79,15 @@
                     <div class="card-body p-2">
                         <h6 class="card-title">{{ p.name }}</h6>
                         <p class="card-text"><small>{{ p.view_count }} просмотров</small></p>
-                        <p class="card-text">{{ p.price }} ₽</p>
+                        {% if p.discounted_price %}
+
+                            <div class="price">
+                                <del>{{ p.price|floatformat:0 }} ₽</del>
+                                <ins class="ms-1">{{ p.discounted_price|floatformat:0 }} ₽</ins>
+                            </div>
+                        {% else %}
+                            <div class="price">{{ p.price|floatformat:0 }} ₽</div>
+                        {% endif %}
                         <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-primary">Купить</a>
                     </div>
                 </div>

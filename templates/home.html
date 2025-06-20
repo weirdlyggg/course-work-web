@@ -44,7 +44,14 @@
                 {% endif %}
                 <div class="carousel-caption bg-dark bg-opacity-50 p-2">
                     <h5>{{ p.name }}</h5>
-                    <p>{{ p.price }} ₽</p>
+                    {% if p.discounted_price %}
+                        <p>
+                            <del>{{ p.price|floatformat:0 }} ₽</del>
+                            <ins class="ms-2">{{ p.discounted_price|floatformat:0 }} ₽</ins>
+                        </p>
+                    {% else %}
+                        <p>{{ p.price|floatformat:0 }} ₽</p>
+                    {% endif %}
                     <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-light">Подробнее</a>
                 </div>
             </div>

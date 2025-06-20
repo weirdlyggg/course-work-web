@@ -1,131 +1,130 @@
-# views.py
-
-# Импорты стандартных библиотек
-from django.views.generic import View
+from django.views.generic import View, UpdateView, DeleteView
 from django.shortcuts import get_object_or_404, render, redirect
-from django.db.models import Count, Avg
+from django.db.models import F, Avg
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.contrib.auth import login
+from django.urls import reverse
+from django.utils import timezone
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.db.models import Q
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
-from django.urls import reverse
-from django.db.models import F
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
-
-
-# Импорты DRF
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.generics import (
-    ListAPIView,
-    CreateAPIView,
-    UpdateAPIView,
-    DestroyAPIView,
-    RetrieveAPIView,
-)
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.generics import ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, RetrieveAPIView
 from rest_framework.authtoken.models import Token
 
-# Локальные импорты
-from .models import Product, Category, Review, Order, Gemestone, ProductImg, SaleEvent, OrderItem, Order, Review
-from .serializers import UserSerializer, ProductSerializer, CategorySerializer, ReviewSerializer, OrderSerializer, RegisterSerializer
-from .forms import OrderReviewForm
+from .models import (
+    Product,
+    Category,
+    Review,
+    Order,
+    Gemestone,
+    SaleEvent,
+    OrderItem,
+    ProductImg,
+)
+from .serializers import (
+    UserSerializer,
+    ProductSerializer,
+    CategorySerializer,
+    ReviewSerializer,
+    OrderSerializer,
+    RegisterSerializer,
+)
+from .forms import (
+    OrderReviewForm,
+    UserProfileForm,
+    CustomUserRegistrationForm,
+    ProductForm,
+)
 
 
 # === HTML Views ===
-
 class ProductDetailView(View):
     def get(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
-        # ——— увеличить счётчик просмотров ——
-        # увеличиваем счётчик просмотров через F-выражение
-        Product.objects.filter(pk=product.pk).update(view_count=F('view_count') + 1)
-        # подгружаем обновлённое значение обратно в объект
+        # Increase view count
+        Product.objects.filter(pk=pk).update(view_count=F('view_count') + 1)
         product.refresh_from_db(fields=['view_count'])
-
+        # Active sale event for this category
+        sale_event = SaleEvent.objects.filter(
+            category=product.category,
+            end_time__gt=timezone.now()
+        ).first()
+        # Load reviews
+        reviews = (
+            Review.objects
+            .filter(product=product)
+            .select_related('user')
+            .order_by('-created_at')
+        )
+        # Popular products
         popular_products = Product.objects.order_by('-view_count')[:6]
-        # ——— загрузить все отзывы для этого товара 
-        reviews = Review.objects.filter(
-            product=product
-        ).select_related('user').order_by('-created_at')
-
         return render(request, 'product_detail.html', {
             'product': product,
-            'popular_products': popular_products,
+            'sale_event': sale_event,
             'reviews': reviews,
+            'popular_products': popular_products,
         })
 
 
 def catalog(request):
+    qs = Product.objects.all()
     category_id = request.GET.get('category')
     gemestone_id = request.GET.get('gemestone')
     q = request.GET.get('q')
-
-    # 1) Собираем базовый queryset
-    products_qs = Product.objects.all()
-
-    # 2) Фильтруем
+    # Filters
     if category_id:
-        products_qs = products_qs.filter(category_id=category_id)
+        qs = qs.filter(category_id=category_id)
     if gemestone_id:
-        products_qs = products_qs.filter(gemestones__id=gemestone_id)
+        qs = qs.filter(gemestones__id=gemestone_id)
     if q:
-        products_qs = products_qs.filter(name__icontains=q)
-
-    # 3) Пагинация: 12 товаров на страницу
-    paginator = Paginator(products_qs, 12)
-    page_number = request.GET.get('page')
-
+        qs = qs.filter(name__icontains=q)
+    # Pagination
+    paginator = Paginator(qs, 12)
+    page_num = request.GET.get('page')
     try:
-        page_obj = paginator.page(page_number)
+        page_obj = paginator.page(page_num)
     except PageNotAnInteger:
         page_obj = paginator.page(1)
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
-
-    # 4) Остальные данные для шаблона
-    all_names   = Product.objects.values_list('name', flat=True).distinct()
-    categories  = Category.objects.all()
-    gemestones  = Gemestone.objects.all()
-
+    # Active sale event
+    sale_event = SaleEvent.objects.filter(end_time__gt=timezone.now()).first()
+    # Data for filters
+    all_names = Product.objects.values_list('name', flat=True).distinct()
+    categories = Category.objects.all()
+    gemestones = Gemestone.objects.all()
     return render(request, 'catalog.html', {
-        # В шаблоне мы теперь используем page_obj для пагинации
-        'products':       page_obj,  
-        'page_obj':       page_obj,
-        'paginator':      paginator,
-
-        'all_names':      all_names,
-        'categories':     categories,
-        'gemestones':     gemestones,
-        'search_query':   q or '',
-        'selected_category':  category_id or '',
+        'products': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'sale_event': sale_event,
+        'all_names': all_names,
+        'categories': categories,
+        'gemestones': gemestones,
+        'search_query': q or '',
+        'selected_category': category_id or '',
         'selected_gemestone': gemestone_id or '',
     })
 
 
-from django.utils import timezone
-
 def home(request):
-    # 1) Последние — 5 самых свежих
     latest_products = Product.objects.filter(status='available').order_by('-created_at')[:5]
-    # 2) Популярные — 6 по количеству просмотров
     popular_products = Product.objects.filter(status='available').order_by('-view_count')[:6]
-    # 3) Распродажа — товары из категории события, со скидкой
-    now = timezone.now()
-    sale_event = SaleEvent.objects.filter(end_time__gt=now).first()
+    sale_event = SaleEvent.objects.filter(end_time__gt=timezone.now()).first()
     sale_products = []
     if sale_event:
-        qs = Product.objects.filter(category=sale_event.category, status='available')
-        for p in qs:
-            discounted = p.price * (100 - sale_event.discount) / 100
+        for p in Product.objects.filter(category=sale_event.category, status='available'):
+            discount_price = p.price * (100 - sale_event.discount) / 100
             sale_products.append({
                 'product': p,
                 'old_price': p.price,
-                'new_price': f"{discounted:.2f}"
+                'new_price': f"{discount_price:.2f}",
             })
-
     return render(request, 'home.html', {
         'latest_products': latest_products,
         'popular_products': popular_products,
@@ -135,114 +134,86 @@ def home(request):
 
 
 def members_page(request):
-    myusers = User.objects.all()
-    return render(request, 'first.html', {'myusers': myusers})
-
+    return render(request, 'first.html', {'myusers': Product.objects.none()})
 
 # === API Views ===
-
 @api_view(['GET'])
 def api_members(request):
-    users = User.objects.all()
-    serializer = UserSerializer(users, many=True)
-    return Response(serializer.data)
-
+    return Response(UserSerializer(User.objects.all(), many=True).data)
 
 @api_view(['GET'])
 def products_by_category(request, category_id):
-    products = Product.objects.filter(category_id=category_id)
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
-
+    return Response(ProductSerializer(
+        Product.objects.filter(category_id=category_id), many=True
+    ).data)
 
 @api_view(['GET'])
 def affordable_products(request):
-    products = Product.objects.exclude(price__gt=10000)
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
-
+    return Response(ProductSerializer(
+        Product.objects.exclude(price__gt=10000), many=True
+    ).data)
 
 @api_view(['GET'])
 def sorted_products(request):
-    products = Product.objects.order_by('name')
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
-
+    return Response(ProductSerializer(
+        Product.objects.order_by('name'), many=True
+    ).data)
 
 @api_view(['GET'])
 def latest_products(request):
-    products = Product.objects.prefetch_related('images').order_by('-id')[:5]
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
-
+    qs = Product.objects.prefetch_related('images').order_by('-id')[:5]
+    return Response(ProductSerializer(qs, many=True).data)
 
 @api_view(['GET'])
 def average_price(request):
-    average = Product.objects.aggregate(Avg('price'))
-    return Response({'average_price': average['price__avg']})
+    avg = Product.objects.aggregate(Avg('price'))['price__avg']
+    return Response({'average_price': avg})
 
-
-# --- API: Подробно с prefetch/select_related ---
 class ProductDetailAPIView(RetrieveAPIView):
     queryset = Product.objects.select_related('category').prefetch_related('images', 'favorites')
     serializer_class = ProductSerializer
 
-
-# --- API: Пагинация товаров ---
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 5
-
 
 class ProductListView(ListAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     pagination_class = StandardResultsSetPagination
 
-
-
-# --- API: Логин пользователя ---
 @api_view(['POST'])
 def login_user(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-    user = authenticate(request, username=username, password=password)
+    user = authenticate(
+        request,
+        username=request.data.get('username'),
+        password=request.data.get('password')
+    )
     if user:
         token, _ = Token.objects.get_or_create(user=user)
         return Response({'token': token.key})
-    return Response({'error': 'Неверные учетные данные'}, status=400)
+    return Response({'error': 'Invalid credentials'}, status=400)
 
-
-# --- API: Текущий пользователь ---
 @api_view(['GET'])
 def current_user(request):
     if request.user.is_authenticated:
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
-    return Response({'error': 'Не авторизован'}, status=401)
+        return Response(UserSerializer(request.user).data)
+    return Response({'error': 'Not authenticated'}, status=401)
 
-
-# --- API: CRUD товары ---
 class ProductCreateAPIView(CreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-
 
 class ProductUpdateAPIView(UpdateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
-
 class ProductDeleteAPIView(DestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
-from .forms import UserProfileForm
-from .models import User
-
 @login_required
 def profile_view(request):
     user = request.user
-    
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=user)
         if form.is_valid():
@@ -250,81 +221,116 @@ def profile_view(request):
             return redirect('profile')
     else:
         form = UserProfileForm(instance=user)
-    
-    orders = user.orders.all()
-    orders_count = orders.count()    # сколько всего заказов
-    has_orders = orders.exists()     # есть ли хотя бы один заказ?
 
-    products = Product.objects.all() if user.is_staff else None
+    orders = user.orders.all()
+    orders_count = orders.count()
+    has_orders = orders.exists()
+
+    products = Product.objects.all() if user.is_staff else []
 
     return render(request, 'profile.html', {
-        'user': user,
-        'user_form': form,
-        'orders': orders,
-        'orders_count': orders_count,
-        'has_orders': has_orders,
-        'products': products,
-    })
+    'user': user,
+    'user_form': form,
+    'orders': orders,
+    'orders_count': orders_count,
+    'has_orders': has_orders,
+    'products': products,
+})
 
 
 def add_to_cart(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    
-    # Получаем или создаём корзину в сессии
     cart = request.session.get('cart', [])
-    
-    # Добавляем товар в корзину (можно сделать проверку на дубли)
     if product_id not in cart:
         cart.append(product_id)
-    
-    request.session['cart'] = cart  # Сохраняем обновлённую корзину
+        request.session['cart'] = cart
     return redirect('product_detail', pk=product_id)
 
+
 def checkout_view(request):
-    cart_product_ids = request.session.get('cart', [])
-    if not cart_product_ids:
-        return redirect('cart')  # Если корзина пуста, редиректим обратно
-
-    user = request.user
-    products = Product.objects.filter(id__in=cart_product_ids)
-
-    # Создаём заказ
-    order = Order.objects.create(
-        user=user,
-        total_price=sum(p.price for p in products),
-        status='pending'
+    cart_ids = request.session.get('cart', [])
+    if not cart_ids:
+        return redirect('cart')
+    products = Product.objects.filter(id__in=cart_ids)
+    sale_event = SaleEvent.objects.filter(end_time__gt=timezone.now()).first()
+    # calculate total with sale
+    total = sum(
+        (p.price * (100 - sale_event.discount) / 100) if sale_event and p.category_id==sale_event.category_id else p.price
+        for p in products
     )
-
-    # Создаём элементы заказа
-    for product in products:
+    order = Order.objects.create(user=request.user, total_price=total, status='pending')
+    for p in products:
+        price = (p.price * (100 - sale_event.discount) / 100) if sale_event and p.category_id==sale_event.category_id else p.price
         OrderItem.objects.create(
             order=order,
-            product=product,
+            product=p,
             quantity=1,
-            prise_at_time_of_purchase=product.price
+            prise_at_time_of_purchase=price,
         )
-
-    # Очищаем корзину после оформления
     request.session['cart'] = []
-
     return redirect('profile')
 
-from .models import Product
 
 def cart_view(request):
-    # Получаем список ID товаров из сессии
-    cart_product_ids = request.session.get('cart', [])
-    
-    # Получаем сами товары из базы данных
-    products = Product.objects.filter(id__in=cart_product_ids)
+    products = Product.objects.filter(id__in=request.session.get('cart', []))
+    sale_event = SaleEvent.objects.filter(end_time__gt=timezone.now()).first()
+    return render(request, 'cart.html', {'products': products, 'sale_event': sale_event})
 
-    return render(request, 'cart.html', {
-        'products': products
+@login_required
+def order_detail_view(request, pk):
+    order = (
+        get_object_or_404(Order, pk=pk)
+        if request.user.is_staff else
+        get_object_or_404(Order, pk=pk, user=request.user)
+    )
+    items = list(order.items.select_related('product').all())
+    existing = Review.objects.filter(
+        user=request.user,
+        product__in=[i.product for i in items]
+    )
+    by_prod = {r.product_id: r for r in existing}
+    form = OrderReviewForm(request.POST or None)
+    if request.method == 'POST' and order.status == 'delivered' and form.is_valid():
+        prod_id = int(request.POST.get('product_id'))
+        match = next((i for i in items if i.product.id == prod_id), None)
+        if match and not by_prod.get(prod_id):
+            rev = form.save(commit=False)
+            rev.user = request.user
+            rev.product = match.product
+            rev.save()
+            return redirect('order_detail', pk=pk)
+    # attach line totals and existing reviews
+    for item in items:
+        item.line_total = item.quantity * item.prise_at_time_of_purchase
+        item.review = by_prod.get(item.product.id)
+    return render(request, 'order_detail.html', {
+        'order': order,
+        'order_items': items,
+        'form': form,
     })
 
-from django.views.generic import UpdateView, DeleteView
-from django.contrib.auth.mixins import UserPassesTestMixin
-from .forms import ProductForm
+# Admin CRUD views
+class AdminProductEditView(UpdateView):
+    model = Product
+    form_class = ProductForm
+    template_name = 'product_form.html'
+    success_url = '/profile/'
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs) if request.user.is_staff else redirect('home')
+
+class AdminProductDeleteView(DeleteView):
+    model = Product
+    template_name = 'product_confirm_delete.html'
+    success_url = '/profile/'
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs) if request.user.is_staff else redirect('home')
+
+@user_passes_test(lambda u: u.is_staff)
+def create_product_view(request):
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        return redirect('profile')
+    return render(request, 'product_form.html', {'form': form})
 
 class AdminProductEditView(UserPassesTestMixin, UpdateView):
     model = Product
@@ -334,7 +340,7 @@ class AdminProductEditView(UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         return self.request.user.is_staff
-
+    
 class AdminProductDeleteView(UserPassesTestMixin, DeleteView):
     model = Product
     template_name = 'product_confirm_delete.html'
@@ -342,79 +348,16 @@ class AdminProductDeleteView(UserPassesTestMixin, DeleteView):
 
     def test_func(self):
         return self.request.user.is_staff
-
-from django.contrib.auth.decorators import user_passes_test
-from .forms import ProductForm
-
-@user_passes_test(lambda u: u.is_staff)
-def create_product_view(request):
-    if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return HttpResponseRedirect(reverse('profile'))
-    else:
-        form = ProductForm()
     
-    return render(request, 'product_form.html', {'form': form})
-
-from .forms import CustomUserRegistrationForm
-from django.contrib.auth import login
-
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password'])  # хешируем
+            user.set_password(form.cleaned_data['password'])
             user.save()
-            login(request, user)  # логиним сразу
+            login(request, user)
             return redirect('profile')
     else:
         form = CustomUserRegistrationForm()
     return render(request, 'register.html', {'form': form})
-
-@login_required
-def order_detail_view(request, pk):
-    # 1) Берём заказ
-    if request.user.is_staff:
-        order = get_object_or_404(Order, pk=pk)
-    else:
-        order = get_object_or_404(Order, pk=pk, user=request.user)
-
-    # 2) Получаем товары заказа
-    order_items = list(order.items.select_related('product').all())
-
-    # 3) Собираем уже оставленные отзывы пользователя по этим товарам
-    existing_reviews = Review.objects.filter(
-        user=request.user,
-        product__in=[item.product for item in order_items]
-    )
-    reviews_by_product = { r.product_id: r for r in existing_reviews }
-
-    # 4) «Пришиваем» к каждому item .review и .line_total
-    for item in order_items:
-        item.line_total = item.quantity * item.prise_at_time_of_purchase
-        item.review     = reviews_by_product.get(item.product.id)
-
-    # 5) Обработка POST — сохранение нового отзыва (только когда заказ delivered)
-    if request.method == 'POST' and order.status == 'delivered':
-        form = OrderReviewForm(request.POST)
-        prod_id = int(request.POST.get('product_id') or 0)
-        # находим правильный item
-        matched = next((it for it in order_items if it.product.id == prod_id), None)
-        if form.is_valid() and matched and not matched.review:
-            review = form.save(commit=False)
-            review.user    = request.user
-            review.product = matched.product
-            review.save()
-            return redirect('order_detail', pk=pk)
-    else:
-        form = OrderReviewForm()
-
-    return render(request, 'order_detail.html', {
-        'order':       order,
-        'order_items': order_items,
-        'form':        form,
-    })
-

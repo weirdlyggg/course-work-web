@@ -14,7 +14,14 @@
                     <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
                 {% endif %}
                 <h4>{{ product.name }}</h4>
-                <p>{{ product.price }} ₽</p>
+                {% if product.discounted_price %}
+                    <div class="price">
+                        <del>{{ product.price|floatformat:0 }} ₽</del>
+                        <ins>{{ product.discounted_price|floatformat:0 }} ₽</ins>
+                    </div>
+                {% else %}
+                    <div class="price">{{ product.price|floatformat:0 }} ₽</div>
+                {% endif %}
             </div>
         {% endfor %}
     </div>

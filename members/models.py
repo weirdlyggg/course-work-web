@@ -6,6 +6,8 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.core.exceptions import ValidationError
 
+
+
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -67,6 +69,18 @@ class Category(models.Model):
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
 
+class SaleEvent(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="Категория распродажи")
+    discount = models.PositiveIntegerField(verbose_name="Скидка, %")
+    end_time = models.DateTimeField(verbose_name="Конец акции")
+
+    def __str__(self):
+        return f"Распродажа: {self.category.name} –{self.discount}% до {self.end_time}"
+
+    class Meta:
+        verbose_name = "Событие распродажи"
+        verbose_name_plural = "События распродаж"
+
 class AvailableProductsManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(status='available')
@@ -79,7 +93,7 @@ class Product(models.Model):
     status = models.CharField(max_length=50, default='available')
     view_count = models.PositiveIntegerField(default=0, verbose_name="Просмотров")
     created_at = models.DateTimeField(default=timezone.now, verbose_name="Дата добавления")
-    
+
     objects = models.Manager()
     available = AvailableProductsManager()
 
@@ -96,17 +110,21 @@ class Product(models.Model):
         verbose_name = "Товар"
         verbose_name_plural = "Товары"
 
-class SaleEvent(models.Model):
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="Категория распродажи")
-    discount = models.PositiveIntegerField(verbose_name="Скидка, %")
-    end_time = models.DateTimeField(verbose_name="Конец акции")
+    @property
+    def discounted_price(self):
+        """
+        Если в категории продукта есть активное событие распродажи,
+        возвращаем новую цену, иначе — None.
+        """
+        now = timezone.now()
+        event = SaleEvent.objects.filter(
+            category=self.category,
+            end_time__gt=now
+        ).first()
+        if not event:
+            return None
+        return self.price * (100 - event.discount) / 100
 
-    def __str__(self):
-        return f"Распродажа: {self.category.name} –{self.discount}% до {self.end_time}"
-
-    class Meta:
-        verbose_name = "Событие распродажи"
-        verbose_name_plural = "События распродаж"
     
 class Favorite(models.Model):
     user = models.ForeignKey(User, related_name='favorites', on_delete=models.CASCADE)
