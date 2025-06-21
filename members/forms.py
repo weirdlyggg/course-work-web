@@ -74,6 +74,12 @@ class CustomUserRegistrationForm(forms.ModelForm):
         model = User
         fields = ['email', 'password', 'first_name', 'last_name', 'phone_number', 'address']
 
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Пользователь с таким e-mail уже существует.")
+        return email
+
     def save(self, commit=True):
         # 1) создаём объект, но ещё НЕ сохраняем в БД
         user = super().save(commit=False)

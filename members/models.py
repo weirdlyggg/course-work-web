@@ -5,6 +5,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 from simple_history.models import HistoricalRecords
 
 
@@ -72,7 +73,7 @@ class Category(models.Model):
 class SaleEvent(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE,
                                  verbose_name="Категория распродажи")
-    discount = models.PositiveIntegerField(verbose_name="Скидка, %")
+    discount = models.PositiveIntegerField(verbose_name="Скидка, %", validators=[MinValueValidator(1), MaxValueValidator(99)])
     end_time = models.DateTimeField(verbose_name="Конец акции")
 
     def clean(self):
@@ -96,7 +97,7 @@ class AvailableProductsManager(models.Manager):
 class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
     category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
     status = models.CharField(max_length=50, default='available')
     view_count = models.PositiveIntegerField(default=0, verbose_name="Просмотров")

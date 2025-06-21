@@ -9,19 +9,23 @@
 {% if products %}
     <div class="grid">
         {% for product in products %}
-            <div class="product-card">
-                {% if product.images.all %}
-                    <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}">
-                {% endif %}
-                <h4>{{ product.name }}</h4>
-                {% if product.discounted_price %}
-                    <div class="price">
-                        <del>{{ product.price|floatformat:0 }} ₽</del>
-                        <ins>{{ product.discounted_price|floatformat:0 }} ₽</ins>
+            <div class="col-6 col-md-4 col-lg-2 mb-4">
+                <div class="card h-100">
+                    {% if product.images.all %}
+                        <img src="{{ product.images.all.0.img.url }}" alt="{{ product.name }}" class="card-img-top">
+                    {% endif %}
+                    <div class="card-body p-2">
+                        <h6>{{ product.name }}</h6>
+                        {% if product.discounted_price %}
+                            <div class="price">
+                                <del>{{ product.price|floatformat:0 }} ₽</del>
+                                <ins>{{ product.discounted_price|floatformat:0 }} ₽</ins>
+                            </div>
+                        {% else %}
+                            <div class="price">{{ product.price|floatformat:0 }} ₽</div>
+                        {% endif %}
                     </div>
-                {% else %}
-                    <div class="price">{{ product.price|floatformat:0 }} ₽</div>
-                {% endif %}
+                </div>
             </div>
         {% endfor %}
     </div>

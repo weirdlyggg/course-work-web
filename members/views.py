@@ -4,11 +4,10 @@ from django.db.models import F, Avg, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
+from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
-from django.contrib.auth import authenticate
-
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -313,14 +312,16 @@ def profile_view(request):
     'products': products,
 })
 
-
+@login_required
 def add_to_cart(request, product_id):
     cart = request.session.get('cart', [])
+    product = get_object_or_404(Product, id=product_id)
     if product_id not in cart:
         cart.append(product_id)
-        request.session['cart'] = cart
+    request.session['cart'] = cart
     return redirect('product_detail', pk=product_id)
 
+@login_required
 def checkout_view(request):
     # 1) Получаем список ID товаров из сессии (по умолчанию пустой список)
     cart_ids = request.session.get('cart', [])
@@ -328,8 +329,8 @@ def checkout_view(request):
         # если корзина пуста — перенаправляем обратно
         return redirect('cart')
 
-    user       = request.user
-    now        = timezone.now()
+    user = request.user
+    now = timezone.now()
     sale_event = SaleEvent.objects.filter(end_time__gt=now).first()
 
     # 2) Достаём продукты
@@ -343,9 +344,16 @@ def checkout_view(request):
             p.sale_price = None
 
     # 4) Считаем общую сумму, отдавая приоритет sale_price
-    total = 0
-    for p in products:
-        total += (p.sale_price or p.price)
+    total = sum(p.sale_price or p.price for p in products)
+
+    # Валидация суммы заказа: от 100 до 100 000 ₽
+    if total < 100 or total > 100000:
+        messages.error(
+            request,
+            "Сумма заказа должна быть не менее 100 ₽ и не более 100 000 ₽. "
+            f"Текущая сумма: {total:.2f} ₽."
+        )
+        return redirect('cart')
 
     # 5) Создаём сам Order
     order = Order.objects.create(
@@ -367,6 +375,7 @@ def checkout_view(request):
     # 7) Очищаем корзину и редирект в профиль
     request.session['cart'] = []
     return redirect('profile')
+
 
 
 def cart_view(request):
@@ -470,3 +479,25 @@ def register_view(request):
         form = CustomUserRegistrationForm()
     return render(request, 'register.html', {'form': form})
 
+# Пример 1: ищем все «кольца» или «серьги» стоимостью от 5000 ₽, но НЕ скрытые (status!='hidden')
+@api_view(['GET'])
+def rings_or_earrings_expensive(request):
+    qs = Product.objects.filter(
+        (Q(name__icontains='кольцо') | Q(name__icontains='серьга'))
+        & Q(price__gte=5000)
+        & ~Q(status='hidden')
+    )
+    data = ProductSerializer(qs, many=True, context={'request': request}).data
+    return Response(data)
+
+# Пример 2: выбираем товары с «золотом» в описании или «серебром» в названии,
+# у которых более 100 просмотров, но НЕ те, у которых статус='out_of_stock'
+@api_view(['GET'])
+def gold_or_silver_popular(request):
+    qs = Product.objects.filter(
+        (Q(description__icontains='золото') | Q(name__icontains='серебро'))
+        & Q(view_count__gt=100)
+        & ~Q(status='out_of_stock')
+    )
+    data = ProductSerializer(qs, many=True, context={'request': request}).data
+    return Response(data)
